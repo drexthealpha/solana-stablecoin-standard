@@ -1,0 +1,1 @@
+{ "name": "sss-token-cli", "version": "0.1.0", "bin": { "sss-token": "dist/index.js" } }

@@ -1,0 +1,1 @@
+{ "name": "@stbr/sss-token", "version": "0.1.0-beta", "main": "dist/index.js", "publishConfig": { "access": "public" } }

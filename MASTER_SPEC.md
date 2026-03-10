@@ -21,16 +21,21 @@ StablecoinError::InvalidAmount
 StablecoinError::AllowanceExceeded
 
 ## PROGRESS TRACKER
-
 [x] Forked repo
 [x] Created MASTER_SPEC.md
 [x] Opened 4 GitHub issues (PDA Seeds, Token-2022 Extensions, Transfer Hook, Multisig Authority)
-[ ] Solana Playground stablecoin project created
-[ ] Solana Playground transfer-hook project created
-[ ] Wallet funded with 4+ SOL
+[x] Solana Playground stablecoin project created
+[x] Solana Playground transfer-hook project created
+[x] Wallet funded with 4+ SOL
 [ ] SVS_NOTES.md written
-[ ] Anchor program core (initialize, mint, burn, freeze, thaw, pause)
-[ ] SSS-2 compliance instructions (blacklist, seize)
-[ ] Devnet deploy — both program IDs saved
+[x] Anchor program core (initialize, mint, burn, freeze, thaw, pause)
+[x] SSS-2 compliance instructions (blacklist, seize)
+[x] Devnet deploy — stablecoin Program ID: 2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9
+[ ] Transfer-hook program deployed — Program ID: TBD
 [ ] DEVNET_PROOF.md with 14+ TX hashes
 [ ] SDK skeleton compiles
+[ ] CLI builds
+[ ] Backend docker compose up — all 3 services healthy
+[ ] Tests passing
+[ ] Fuzz tests run with logs
+[ ] All 9 docs written
