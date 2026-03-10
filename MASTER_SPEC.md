@@ -1,1 +1,36 @@
 ## LOCKED CONSTANTS — NEVER CHANGE BETWEEN AI SESSIONS
+
+TOKEN_2022_PROGRAM_ID = TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
+SQUADS_V4_PROGRAM_ID = SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf
+PYUSD_MAINNET_REF = 2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo
+
+## PDA SEEDS
+
+Config PDA: [b"config", mint.key().as_ref()]
+Blacklist PDA: [b"blacklist", mint.key().as_ref(), address.key().as_ref()]
+Minter PDA: [b"minter", mint.key().as_ref(), minter.key().as_ref()]
+Hook Meta PDA: [b"extra-account-metas", mint.key().as_ref()]
+
+## ERROR PATTERN
+
+StablecoinError::Unauthorized
+StablecoinError::NotCompliantStablecoin
+StablecoinError::OverflowError
+StablecoinError::AccountNotFrozen
+StablecoinError::InvalidAmount
+StablecoinError::AllowanceExceeded
+
+## PROGRESS TRACKER
+
+[x] Forked repo
+[x] Created MASTER_SPEC.md
+[x] Opened 4 GitHub issues (PDA Seeds, Token-2022 Extensions, Transfer Hook, Multisig Authority)
+[ ] Solana Playground stablecoin project created
+[ ] Solana Playground transfer-hook project created
+[ ] Wallet funded with 4+ SOL
+[ ] SVS_NOTES.md written
+[ ] Anchor program core (initialize, mint, burn, freeze, thaw, pause)
+[ ] SSS-2 compliance instructions (blacklist, seize)
+[ ] Devnet deploy — both program IDs saved
+[ ] DEVNET_PROOF.md with 14+ TX hashes
+[ ] SDK skeleton compiles
