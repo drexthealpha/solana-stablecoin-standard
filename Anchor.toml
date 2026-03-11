@@ -1,0 +1,14 @@
+[toolchain]
+anchor = "0.30.1"
+solana = "1.18.0"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[programs]
+stablecoin = "2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9"
+
+[scripts]
+test = "anchor test --skip-deploy"
+build = "anchor build"

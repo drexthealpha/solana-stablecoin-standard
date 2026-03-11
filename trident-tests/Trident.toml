@@ -1,0 +1,9 @@
+[program]
+stablecoin = "2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9"
+
+[cluster]
+url = "https://api.devnet.solana.com"
+
+[fuzzing]
+threads = 4
+timeout = 300

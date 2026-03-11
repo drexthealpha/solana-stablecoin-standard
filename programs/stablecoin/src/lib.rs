@@ -147,7 +147,6 @@ pub mod stablecoin {
 
         ctx.accounts.minter_pda.bump = ctx.bumps.minter_pda;
 
-        // FIX: bind key to a variable so it lives long enough for signer_seeds
         let mint_key = ctx.accounts.mint.key();
         let bump = ctx.accounts.config.bump;
         let seeds = &[b"config".as_ref(), mint_key.as_ref(), &[bump]];
@@ -202,7 +201,6 @@ pub mod stablecoin {
             return err!(StablecoinError::Unauthorized);
         }
 
-        // FIX: bind key to a variable so it lives long enough for signer_seeds
         let mint_key = ctx.accounts.mint.key();
         let bump = ctx.accounts.config.bump;
         let seeds = &[b"config".as_ref(), mint_key.as_ref(), &[bump]];
@@ -230,7 +228,6 @@ pub mod stablecoin {
             return err!(StablecoinError::Unauthorized);
         }
 
-        // FIX: bind key to a variable so it lives long enough for signer_seeds
         let mint_key = ctx.accounts.mint.key();
         let bump = ctx.accounts.config.bump;
         let seeds = &[b"config".as_ref(), mint_key.as_ref(), &[bump]];
@@ -349,7 +346,6 @@ pub mod stablecoin {
             return err!(StablecoinError::InvalidAmount);
         }
 
-        // FIX: bind key to a variable so it lives long enough for signer_seeds
         let mint_key = ctx.accounts.mint.key();
         let bump = ctx.accounts.config.bump;
         let decimals = config.decimals;
@@ -426,6 +422,7 @@ pub struct MintTokens<'info> {
         bump = config.bump
     )]
     pub config: Account<'info, StablecoinConfig>,
+    #[account(mut)] // FIXED: mint_to CPI must write to mint to update supply
     pub mint: InterfaceAccount<'info, Mint>,
     #[account(
         init_if_needed,
@@ -452,6 +449,7 @@ pub struct BurnTokens<'info> {
         bump = config.bump
     )]
     pub config: Account<'info, StablecoinConfig>,
+    #[account(mut)] // FIXED: burn CPI must write to mint to update supply
     pub mint: InterfaceAccount<'info, Mint>,
     #[account(mut, token::mint = mint)]
     pub source_token: InterfaceAccount<'info, TokenAccount>,
