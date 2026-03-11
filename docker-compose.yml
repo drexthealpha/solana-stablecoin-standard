@@ -1,1 +1,146 @@
-# Docker compose — TODO
+version: "3.8"
+
+services:
+  mint-service:
+    build:
+      context: ./backend/mint-service
+      dockerfile: Dockerfile
+    container_name: sss-mint-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - RPC_URL=${RPC_URL:-https://api.devnet.solana.com}
+      - STABLECOIN_PROGRAM_ID=2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9
+      - TOKEN_PROGRAM_ID=TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXElPxuEb
+      - WALLET_PATH=/app/wallet.json
+      - LOG_LEVEL=info
+    volumes:
+      - ./wallet.json:/app/wallet.json:ro
+      - mint-service-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  indexer:
+    build:
+      context: ./backend/indexer
+      dockerfile: Dockerfile
+    container_name: sss-indexer
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - RPC_URL=${RPC_URL:-https://api.devnet.solana.com}
+      - STABLECOIN_PROGRAM_ID=2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9
+      - TRANSFER_HOOK_PROGRAM_ID=PQgUt1swYzA9RSAG7gpyTQpk9TtbVReX11ytkeYTJBo
+      - WEBHOOK_URL=http://webhook-service:3004
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/indexer
+      - LOG_LEVEL=info
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  compliance-service:
+    build:
+      context: ./backend/compliance-service
+      dockerfile: Dockerfile
+    container_name: sss-compliance-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - RPC_URL=${RPC_URL:-https://api.devnet.solana.com}
+      - STABLECOIN_PROGRAM_ID=2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9
+      - CHAINALYSIS_API_KEY=${CHAINALYSIS_API_KEY:-}
+      - AUDIT_LOG_PATH=/app/audit.log
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/compliance
+      - LOG_LEVEL=info
+    volumes:
+      - ./audit.log:/app/audit.log
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  webhook-service:
+    build:
+      context: ./backend/webhook-service
+      dockerfile: Dockerfile
+    container_name: sss-webhook-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/webhooks
+      - LOG_LEVEL=info
+      - RETRY_MAX_ATTEMPTS=3
+      - RETRY_BACKOFF_MS=1000
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: sss-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_MULTIPLE_DATABASES=indexer,compliance,webhooks
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  mint-service-data:
+  postgres-data:
+
+networks:
+  default:
+    name: sss-network

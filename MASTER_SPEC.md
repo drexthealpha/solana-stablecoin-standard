@@ -27,15 +27,15 @@ StablecoinError::AllowanceExceeded
 [x] Solana Playground stablecoin project created
 [x] Solana Playground transfer-hook project created
 [x] Wallet funded with 4+ SOL
-[ ] SVS_NOTES.md written
+[x] SVS_NOTES.md written
 [x] Anchor program core (initialize, mint, burn, freeze, thaw, pause)
 [x] SSS-2 compliance instructions (blacklist, seize)
 [x] Devnet deploy — stablecoin Program ID: 2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9
-[ ] Transfer-hook program deployed — Program ID: TBD
+[x] Transfer-hook program deployed — Program ID: PQgUt1swYzA9RSAG7gpyTQpk9TtbVReX11ytkeYTJBo
 [ ] DEVNET_PROOF.md with 14+ TX hashes
-[ ] SDK skeleton compiles
-[ ] CLI builds
+[x] SDK skeleton compiles
+[x] CLI builds
 [ ] Backend docker compose up — all 3 services healthy
 [ ] Tests passing
 [ ] Fuzz tests run with logs
-[ ] All 9 docs written
+[x] All 9 docs written

@@ -5,7 +5,7 @@ use spl_tlv_account_resolution::{
 };
 use spl_transfer_hook_interface::instruction::ExecuteInstruction;
 
-declare_id!("11111111111111111111111111111111"); // will update after deploy
+declare_id!("PQgUt1swYzA9RSAG7gpyTQpk9TtbVReX11ytkeYTJBo");
 
 // Must match the stablecoin program ID exactly
 pub const STABLECOIN_PROGRAM_ID: Pubkey =
