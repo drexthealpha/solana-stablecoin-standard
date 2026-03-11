@@ -32,7 +32,7 @@ StablecoinError::AllowanceExceeded
 [x] SSS-2 compliance instructions (blacklist, seize)
 [x] Devnet deploy — stablecoin Program ID: 2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9
 [x] Transfer-hook program deployed — Program ID: PQgUt1swYzA9RSAG7gpyTQpk9TtbVReX11ytkeYTJBo
-[ ] DEVNET_PROOF.md with 14+ TX hashes
+[x] DEVNET_PROOF.md with 15 TX hashes — all confirmed on devnet
 [x] SDK skeleton compiles
 [x] CLI builds
 [ ] Backend docker compose up — all 3 services healthy
