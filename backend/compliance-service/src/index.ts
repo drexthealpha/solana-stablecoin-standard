@@ -283,6 +283,28 @@ app.get("/audit-log", async (req: Request, res: Response) => {
   }
 });
 
+app.get('/audit-log/verify', (req: Request, res: Response) => {
+  try {
+    const { verifyChain } = require('./audit');
+    const result = verifyChain();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
+app.get('/audit-log/export', (req: Request, res: Response) => {
+  try {
+    const { exportCSV } = require('./audit');
+    const csv = exportCSV();
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=audit-log.csv');
+    res.send(csv);
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   logger.error({ err, msg: "Unhandled error" });
   res.status(500).json({ error: "Internal server error" });
