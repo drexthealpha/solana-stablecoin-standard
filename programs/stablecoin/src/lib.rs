@@ -62,6 +62,7 @@ pub struct StablecoinConfig {
     pub blacklister: Pubkey,
     pub pauser: Pubkey,
     pub is_paused: bool,
+    pub total_supply: u64,
     pub enable_permanent_delegate: bool,
     pub enable_transfer_hook: bool,
     pub default_account_frozen: bool,
@@ -147,6 +148,13 @@ pub mod stablecoin {
 
         ctx.accounts.minter_pda.bump = ctx.bumps.minter_pda;
 
+        ctx.accounts.config.total_supply = ctx
+            .accounts
+            .config
+            .total_supply
+            .checked_add(amount)
+            .ok_or(StablecoinError::OverflowError)?;
+
         let mint_key = ctx.accounts.mint.key();
         let bump = ctx.accounts.config.bump;
         let seeds = &[b"config".as_ref(), mint_key.as_ref(), &[bump]];
@@ -188,6 +196,13 @@ pub mod stablecoin {
             ),
             amount,
         )?;
+
+        ctx.accounts.config.total_supply = ctx
+            .accounts
+            .config
+            .total_supply
+            .checked_sub(amount)
+            .ok_or(StablecoinError::OverflowError)?;
 
         Ok(())
     }
