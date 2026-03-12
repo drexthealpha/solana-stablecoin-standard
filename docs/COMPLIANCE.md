@@ -14,6 +14,23 @@ This document outlines the compliance framework for SSS-2 compliant stablecoins 
 | §11 — Examination | Regulator audit access | SQLite checksum audit chain; `GET /audit-log/verify` returns `{valid: true, rows: N}`; `GET /audit-log/export` returns CSV |
 | §14 — Enforcement | Freeze and confiscation | `freeze_account` + `seize` instructions enforced at program level; freeze required before seize |
 
+## Role Separation Architecture
+
+SSS-2 separates authority across four distinct roles, following Circle's USDC controller design pattern:
+
+| Role | Capability | Cannot |
+|------|-----------|--------|
+| master_authority | Update all roles, initiate authority transfer | Mint, freeze, blacklist directly |
+| master_minter | Grant per-minter allowances | Freeze, blacklist, seize |
+| blacklister | Freeze, blacklist, seize | Mint, pause |
+| pauser | Pause / unpause protocol | Mint, freeze, blacklist |
+
+**Per-minter allowances** mirror Circle's USDC minter controller design: each minter address has a `MinterAllowance` PDA storing `allowance: u64`. The `master_minter` sets per-minter quotas; every mint instruction atomically deducts from the allowance. A compromised minter key cannot mint beyond its assigned quota.
+
+**Why separation matters:** If a single key controlled mint + freeze + blacklist, a compromise would allow simultaneous minting of unbacked supply and seizure of legitimate accounts. Role separation limits blast radius — a compromised blacklister cannot mint; a compromised minter cannot seize.
+
+**Authority transfer pattern:** `update_roles` sets `pending_master_authority`; the new authority must call `accept_authority` to complete the handoff. This two-step pattern prevents accidental authority loss.
+
 ### SQLite Checksum Audit Chain
 
 The compliance-service implements an append-only audit log using SQLite with a SHA-256 hash chain, meeting GENIUS Act §11 examination requirements.
