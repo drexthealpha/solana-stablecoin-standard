@@ -238,3 +238,25 @@ docker logs sss-indexer
 # Compliance
 docker logs sss-compliance-service
 ```
+
+## Production Hardening
+
+| Component | Prototype (Now) | Production |
+|-----------|----------------|------------|
+| Authority | Single keypair | Squads v4 multisig (`SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`) |
+| Audit log | SQLite (better-sqlite3) | PostgreSQL, append-only role, WAL archiving |
+| Event pipeline | In-memory cache | Apache Kafka, persistent consumer groups |
+| RPC endpoint | Public devnet | Helius dedicated node (helius.dev) |
+| Key storage | File-based id.json | HSM — AWS CloudHSM or Ledger hardware wallet |
+| Monitoring | Docker stdout | Datadog APM + PagerDuty alerts |
+| Secrets | .env file | AWS Secrets Manager or HashiCorp Vault |
+
+### Mainnet Deployment Checklist
+
+- [ ] Security audit completed (Ackee, OtterSec, or Neodyme)
+- [ ] Squads v4 multisig created and authority transferred
+- [ ] PostgreSQL deployed with append-only audit user
+- [ ] Helius RPC endpoint configured in all services
+- [ ] HSM provisioned for master_authority keypair
+- [ ] Monitoring and alerting live
+- [ ] Incident response runbook reviewed with team

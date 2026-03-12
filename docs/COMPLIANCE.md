@@ -4,18 +4,37 @@ This document outlines the compliance framework for SSS-2 compliant stablecoins 
 
 ## Regulatory Framework
 
-### GENIUS Act Alignment
+### GENIUS Act Alignment — Section-by-Section
 
-The SSS-2 standard is designed to meet US GENIUS Act requirements for payment stablecoins:
+| GENIUS Act Section | Requirement | SSS-2 Implementation |
+|-------------------|-------------|----------------------|
+| §3 — Definitions | Payment stablecoin definition | SSS-2 config marks `enablePermanentDelegate=true` distinguishing it from utility tokens |
+| §6 — Reserve Requirements | 1:1 liquid asset backing | Off-chain reserve management; `burn` instruction always callable for redemption |
+| §9 — Redemption Rights | Holder can redeem at par | `burn` instruction permissionless for token holders at any time |
+| §11 — Examination | Regulator audit access | SQLite checksum audit chain; `GET /audit-log/verify` returns `{valid: true, rows: N}`; `GET /audit-log/export` returns CSV |
+| §14 — Enforcement | Freeze and confiscation | `freeze_account` + `seize` instructions enforced at program level; freeze required before seize |
 
-| Requirement | SSS-2 Implementation |
-|-------------|---------------------|
-| 1:1 Backing | Managed off-chain, verifiable via oracle |
-| Redemption | `burn` instruction always available |
-| Capital Requirements | Off-chain KYC/AML |
-| Blacklist | Transfer hook blocks sanctioned addresses |
-| Seizure | `seize` instruction for authorized confiscation |
-| Supervision | Audit trail for all compliance actions |
+### SQLite Checksum Audit Chain
+
+The compliance-service implements an append-only audit log using SQLite with a SHA-256 hash chain, meeting GENIUS Act §11 examination requirements.
+
+**Schema:** `id, timestamp, action, actor, target, reason, amount, tx_sig, prev_hash, row_hash`
+
+**Hash formula:** `row_hash = SHA256(prev_hash + timestamp + action + actor + target + tx_sig)`
+
+**Genesis row:** `prev_hash = "GENESIS"`
+
+**Tamper detection:** On startup and on request, the full chain is re-verified. Any broken link logs `AUDIT_CHAIN_TAMPERED`.
+
+**Verify endpoint:**
+
+GET http://localhost:3003/audit-log/verify→ { "valid": true, "rows": 42 }
+
+**Production upgrade path:** Replace SQLite with PostgreSQL using an append-only role. Add WAL archiving for point-in-time recovery.
+
+### Multisig Upgrade Path
+
+See `docs/ARCHITECTURE.md` Production Security Model section. Squads v4 program: `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`. Timelock: 24-hour delay on all `master_authority` transfers.
 
 ## Blacklist Enforcement
 

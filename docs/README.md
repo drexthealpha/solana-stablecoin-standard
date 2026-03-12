@@ -1,3 +1,5 @@
+[![CI](https://github.com/drexthealpha/solana-stablecoin-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/drexthealpha/solana-stablecoin-standard/actions/workflows/ci.yml)
+
 # Solana Stablecoin Standard (SSS)
 
 A comprehensive framework for building regulated stablecoins on Solana using Token-2022 with compliance features.
