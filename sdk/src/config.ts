@@ -1,6 +1,8 @@
 import { PublicKey } from "@solana/web3.js";
 import { Preset, PresetConfig, InitializeArgs, Presets } from "./index";
 import { z } from "zod";
+import * as TOML from "@iarna/toml";
+import * as fs from "fs";
 
 const SSSConfigSchema = z.object({
   preset: z.enum(["sss-1", "sss-2"]),
@@ -35,24 +37,36 @@ export interface TOMLConfig {
 }
 
 export function parseTOMLConfig(tomlContent: string): TOMLConfig {
-  const config: TOMLConfig = {};
-  const lines = tomlContent.split("\n");
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    const match = trimmed.match(/^(\w+)\s*=\s*(.+)$/);
-    if (!match) continue;
-
-    const [, key, value] = match;
-    const cleanValue = value.replace(/^["']|["']$/g, "").trim();
-
-    (config as any)[key] = cleanValue;
-  }
-
+  const raw = TOML.parse(tomlContent) as Record<string, unknown>;
+  const config: TOMLConfig = {
+    preset: raw.preset as string,
+    name: raw.name as string | undefined,
+    symbol: raw.symbol as string | undefined,
+    uri: raw.uri as string | undefined,
+    decimals: raw.decimals as number | undefined,
+    master_authority: raw.master_authority as string | undefined,
+    master_minter: raw.master_minter as string | undefined,
+    blacklister: raw.blacklister as string | undefined,
+    pauser: raw.pauser as string | undefined,
+  };
   SSSConfigSchema.parse(config);
+  return config;
+}
 
+export function parseTOMLFile(tomlPath: string): TOMLConfig {
+  const raw = TOML.parse(fs.readFileSync(tomlPath, "utf-8")) as Record<string, unknown>;
+  const config: TOMLConfig = {
+    preset: raw.preset as string,
+    name: raw.name as string | undefined,
+    symbol: raw.symbol as string | undefined,
+    uri: raw.uri as string | undefined,
+    decimals: raw.decimals as number | undefined,
+    master_authority: raw.master_authority as string | undefined,
+    master_minter: raw.master_minter as string | undefined,
+    blacklister: raw.blacklister as string | undefined,
+    pauser: raw.pauser as string | undefined,
+  };
+  SSSConfigSchema.parse(config);
   return config;
 }
 
@@ -65,7 +79,6 @@ export function buildInitializeArgs(
   authority: PublicKey
 ): InitializeArgs {
   let presetConfig: PresetConfig;
-
   if ("preset" in config) {
     if (config.preset === "sss-1") {
       presetConfig = Presets.SSS_1;
@@ -77,12 +90,10 @@ export function buildInitializeArgs(
   } else {
     presetConfig = config as PresetConfig;
   }
-
   const name = (config as any).name || "Stablecoin";
   const symbol = (config as any).symbol || "STBL";
   const uri = (config as any).uri || "";
   const decimals = (config as any).decimals || 6;
-
   return {
     name,
     symbol,
@@ -98,11 +109,8 @@ export function buildInitializeArgs(
 }
 
 export function getPreset(presetName: string): PresetConfig {
-  if (presetName === "sss-1" || presetName === "SSS-1") {
-    return Presets.SSS_1;
-  } else if (presetName === "sss-2" || presetName === "SSS-2") {
-    return Presets.SSS_2;
-  }
+  if (presetName === "sss-1" || presetName === "SSS-1") return Presets.SSS_1;
+  if (presetName === "sss-2" || presetName === "SSS-2") return Presets.SSS_2;
   throw new Error(`Unknown preset: ${presetName}`);
 }
 
