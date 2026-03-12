@@ -28,6 +28,7 @@ interface ParsedEvent {
   slot: number;
   timestamp: number;
   programId: string;
+  signature?: string;
 }
 
 const eventCache: ParsedEvent[] = [];
