@@ -1,3 +1,4 @@
+import React from 'react';
 import { Composition, Series } from 'remotion';
 import { TitleCard } from './scenes/TitleCard';
 import { ArchitectureScene } from './scenes/ArchitectureScene';
