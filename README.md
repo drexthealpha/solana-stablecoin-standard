@@ -64,4 +64,4 @@ npm install @stbr/sss-token
 
 ## License
 
-Apache 2.0
+MIT

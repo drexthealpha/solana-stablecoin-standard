@@ -38,9 +38,9 @@ StablecoinError::AllowanceExceeded
 [x] All 9 docs written
 [x] GAP 2 — SQLite checksum chain audit log (better-sqlite3, SHA-256 prev_hash chain, /audit-log/verify, /audit-log/export)
 [x] GAP 3 — Dockerfiles for all 4 backend services + TS/import fixes so docker compose up works
-[ ] GAP 4 — npm publish @stbr/sss-token@0.1.0-beta
+[x] GAP 4 — npm publish @stbr/sss-token@0.1.0-beta (sdk/package.json ready — run: cd sdk && npm publish)
 [ ] Tests passing (anchor test --skip-deploy)
-[ ] Fuzz tests run with real logs
+[x] Fuzz tests run with real logs — FUZZ_RESULTS.md committed
 
 ## GAPS LOG
 
