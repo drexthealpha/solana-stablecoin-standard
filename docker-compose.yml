@@ -76,7 +76,9 @@ services:
       - AUDIT_LOG_PATH=/app/audit.log
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/compliance
       - LOG_LEVEL=info
+      - MINT_ADDRESS=${MINT_ADDRESS:-}
     volumes:
+      - ./wallet.json:/app/wallet.json:ro
       - ./audit.log:/app/audit.log
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
