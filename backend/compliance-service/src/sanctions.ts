@@ -16,7 +16,7 @@ export class SanctionsScreener {
 
   constructor() {
     this.apiKey = process.env.CHAINALYSIS_API_KEY;
-    this.baseUrl = process.env.CHAINALYSIS_BASE_URL || "https://api.chainalysis.com/api/kyt/v1";
+    this.baseUrl = process.env.CHAINALYSIS_BASE_URL || "https://api.chainalysis.com/api/kyt/v2";
   }
 
   async screen(address: string): Promise<SanctionsCheckResult> {
@@ -62,7 +62,7 @@ export class SanctionsScreener {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/screenedAddresses`, {
+      const response = await fetch(`${this.baseUrl}/entities`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
