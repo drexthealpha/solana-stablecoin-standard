@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
-import { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createTransferCheckedInstruction, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { assert } from "chai";
 
 describe("SSS-1 Integration Tests", () => {
@@ -173,6 +173,26 @@ describe("SSS-1 Integration Tests", () => {
     const isFrozen = (frozenInfo.value?.data as any)?.parsed?.info?.state === "frozen";
     assert.equal(isFrozen, true, "Account must be frozen");
     console.log("Account is frozen — transfers blocked at protocol level");
+
+    // Verify frozen accounts cannot transfer (Token-2022 enforces at protocol level)
+    try {
+      const transferIx = createTransferCheckedInstruction(
+        userTokenAccount,
+        mint.publicKey,
+        recipientTokenAccount,
+        user,
+        1,
+        6,
+        [],
+        TOKEN_PROGRAM_ID
+      );
+      const transferTx = new anchor.web3.Transaction().add(transferIx);
+      await program.provider.sendAndConfirm!(transferTx);
+      assert.fail('Transfer should have failed while account is frozen');
+    } catch (e: any) {
+      assert.notEqual(e.message, 'Transfer should have failed while account is frozen');
+      console.log('Expected: transfer blocked by Token-2022 while frozen');
+    }
 
     const thawTx = await program.methods
       .thawAccount()
