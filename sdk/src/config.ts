@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
-import { Preset, PresetConfig, InitializeArgs } from "./index";
+import { Preset, PresetConfig, InitializeArgs, Presets } from "./index";
 
 export interface PresetConfigOptions {
   preset: Preset;

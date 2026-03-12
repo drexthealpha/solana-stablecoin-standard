@@ -422,9 +422,8 @@ export class SolanaStablecoin {
   }
 
   async getTotalSupply(mint: PublicKey): Promise<number> {
-    const configPDA = SolanaStablecoin.getConfigPDA(mint);
-    const config = await this.program.account.stablecoinConfig.fetch(configPDA);
-    return (config as any).totalSupply.toNumber();
+    const mintInfo = await this.connection.getTokenSupply(mint);
+    return Number(mintInfo.value.amount);
   }
 
   async getConfig(mint: PublicKey): Promise<StablecoinConfig | null> {

@@ -7,7 +7,8 @@
   "files": ["dist", "src", "idl"],
   "scripts": {
     "build": "npx tsc --declaration --outDir dist",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "echo 'No unit tests yet' && exit 0"
   },
   "publishConfig": {
     "access": "public"
