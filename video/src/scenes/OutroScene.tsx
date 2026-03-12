@@ -1,19 +1,20 @@
-import { AbsoluteFill, Text } from "remotion";
-
+import React from 'react';
+import { spring, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 export const OutroScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const titleScale = spring({ frame, fps, config: { damping: 14 } });
+  const fade = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
+  const ctaOpacity = interpolate(frame, [30, 48], [0, 1], { extrapolateRight: 'clamp' });
   return (
-    <AbsoluteFill style={{ backgroundColor: "#0f0f23", justifyContent: "center", alignItems: "center" }}>
-      <Text style={{ fontSize: 48, color: "#ffffff", fontWeight: "bold", marginBottom: 20 }}>
-        Get Started Today
-      </Text>
-      <Text style={{ fontSize: 24, color: "#a1a1aa", marginBottom: 40 }}>
-        npm install @stbr/sss-token
-      </Text>
-      <Text style={{ fontSize: 18, color: "#71717a" }}>
-        Solana Stablecoin Standard — Built for the future of regulated finance
-      </Text>
-    </AbsoluteFill>
+    <div style={{ background: 'linear-gradient(135deg, #1E1B4B, #6B21A8)', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: '#FFFFFF', fontSize: 96, fontWeight: 900, opacity: fade, transform: `scale(${titleScale})`, textAlign: 'center' }}>Fork it. Ship it.</div>
+      <div style={{ opacity: ctaOpacity, marginTop: 48, textAlign: 'center' }}>
+        <div style={{ color: '#C4B5FD', fontSize: 34 }}>github.com/solanabr/solana-stablecoin-standard</div>
+        <div style={{ color: '#86EFAC', fontSize: 28, marginTop: 16 }}>npmjs.com/package/@stbr/sss-token</div>
+        <div style={{ color: '#FCD34D', fontSize: 28, marginTop: 16 }}>@SuperteamBR @kauenet</div>
+      </div>
+    </div>
   );
 };
-
 export default OutroScene;
