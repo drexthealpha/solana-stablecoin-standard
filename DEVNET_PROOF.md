@@ -34,6 +34,8 @@
 | Mint SSS-2 | 5JxWvF7MyC4WbfLmeLxFVfDZLzVTkXgX1LbqayHCLo5VB1Ri7KG2QqX9UsBjSN2gWHY6MeHVdH2995MTDJu2mziD | [View](https://solana.fm/tx/5JxWvF7MyC4WbfLmeLxFVfDZLzVTkXgX1LbqayHCLo5VB1Ri7KG2QqX9UsBjSN2gWHY6MeHVdH2995MTDJu2mziD?cluster=devnet-solana) |
 | Add to Blacklist | 34xXmtd7UpgyiW95cvhqqJ8X8HiPMboSQHiPHoBZdxyNji5ACnUpjU54U2ow5T1HsN8Ph47iTDcpKxZJsdbfetie | [View](https://solana.fm/tx/34xXmtd7UpgyiW95cvhqqJ8X8HiPMboSQHiPHoBZdxyNji5ACnUpjU54U2ow5T1HsN8Ph47iTDcpKxZJsdbfetie?cluster=devnet-solana) |
 | Remove from Blacklist | 5rz7CfAgRfx9mccekEaVxUxVGBrTvF96r3UDhaQS9fwa9JGH5xr89XiKJmUsTDd2n2wd424xBvRLtFiUVRt5WR5Y | [View](https://solana.fm/tx/5rz7CfAgRfx9mccekEaVxUxVGBrTvF96r3UDhaQS9fwa9JGH5xr89XiKJmUsTDd2n2wd424xBvRLtFiUVRt5WR5Y?cluster=devnet-solana) |
+| Init Hook Extra Account Meta | PLACEHOLDER_HOOK_INIT_TX | [View](https://solana.fm/tx/PLACEHOLDER_HOOK_INIT_TX?cluster=devnet-solana) |
+| Transfer Blocked (BlacklistedAddress hook fired) | PLACEHOLDER_BLOCKED_TX | [View](https://solana.fm/tx/PLACEHOLDER_BLOCKED_TX?cluster=devnet-solana) |
 
 ## Verification
 
