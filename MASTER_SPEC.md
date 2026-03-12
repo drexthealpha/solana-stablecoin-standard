@@ -54,11 +54,13 @@ Hash chain: SHA-256(prev_hash + timestamp + action + actor + target + tx_sig). G
 New routes: GET /audit-log/verify, GET /audit-log/export (CSV).
 package.json created with better-sqlite3 ^9.4.3.
 
-### GAP 3 — RESOLVED (commit: feat(gap-3): Dockerfiles for all 4 services, fix TS syntax error in indexer, fix SDK import paths)
-Created Dockerfile + tsconfig.json in backend/mint-service, backend/indexer, backend/compliance-service, backend/webhook-service.
+### GAP 3 — RESOLVED (commit: fix: tsconfig rootDir to fix SDK import in Docker, remove committed zip)
+Created Dockerfile + tsconfig.json in all 4 backend services.
 Fixed TS syntax error in indexer/src/index.ts — onLogsCallback changed to const arrow function.
-Fixed SDK import paths in compliance-service and mint-service from ../../sdk/src to ../../../sdk/src.
-wallet.json placeholder created, added to .gitignore.
+Fixed tsconfig rootDir to "." in mint-service and compliance-service so sdk/ folder is in scope.
+Fixed import paths to ../sdk/src/index and ../sdk/src/compliance.
+docker-compose.yml build contexts set to repo root (context: .) for all services.
+wallet.json added to .gitignore. repo-snapshot-v3.zip removed from git. *.zip added to .gitignore.
 
 ### GAP 4 — PENDING
 sdk/package.json needs name set to @stbr/sss-token, files field, main/types fields, and npm publish run.
