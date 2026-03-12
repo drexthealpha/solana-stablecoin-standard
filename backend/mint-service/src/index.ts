@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
-import { SolanaStablecoin, STABLECOIN_PROGRAM_ID } from "./sdk/src/index";
+import { SolanaStablecoin, STABLECOIN_PROGRAM_ID } from "../sdk/src/index";
 import pino from "pino";
 import * as fs from "fs";
 import * as path from "path";

@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
-import { ComplianceModule } from "./sdk/src/compliance";
+import { ComplianceModule } from "../sdk/src/compliance";
 import { appendAudit, verifyChain, getEntries, exportCSV } from "./audit";
 import { SanctionsScreener } from "./sanctions";
 import pino from "pino";
