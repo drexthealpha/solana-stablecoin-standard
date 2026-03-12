@@ -235,10 +235,10 @@ describe("SSS-2 Integration Tests", () => {
 
     console.log("Freeze transaction:", tx);
 
-    const tokenAccountInfo = await program.provider.connection.getParsedTokenAccountInfo(
+    const tokenAccountInfo = await program.provider.connection.getParsedAccountInfo(
       blacklistedTokenAccount
     );
-    const isFrozen = tokenAccountInfo.value?.parsed?.info?.state === "frozen";
+    const isFrozen = tokenAccountInfo.value?.data?.parsed?.info?.state === "frozen";
     assert.equal(isFrozen, true);
   });
 
@@ -259,10 +259,10 @@ describe("SSS-2 Integration Tests", () => {
 
     console.log("Seize transaction:", tx);
 
-    const treasuryInfo = await program.provider.connection.getParsedTokenAccountInfo(
+    const treasuryInfo = await program.provider.connection.getParsedAccountInfo(
       treasuryTokenAccount
     );
-    const treasuryBalance = treasuryInfo.value?.parsed?.info?.tokenAmount?.uiAmount || 0;
+    const treasuryBalance = treasuryInfo.value?.data?.parsed?.info?.tokenAmount?.uiAmount || 0;
     assert.isTrue(treasuryBalance >= 0.5);
   });
 
