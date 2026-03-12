@@ -3,8 +3,8 @@ version: "3.8"
 services:
   mint-service:
     build:
-      context: ./backend/mint-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/mint-service/Dockerfile
     container_name: sss-mint-service
     ports:
       - "3001:3001"
@@ -33,8 +33,8 @@ services:
 
   indexer:
     build:
-      context: ./backend/indexer
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/indexer/Dockerfile
     container_name: sss-indexer
     ports:
       - "3002:3002"
@@ -63,8 +63,8 @@ services:
 
   compliance-service:
     build:
-      context: ./backend/compliance-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/compliance-service/Dockerfile
     container_name: sss-compliance-service
     ports:
       - "3003:3003"
@@ -93,8 +93,8 @@ services:
 
   webhook-service:
     build:
-      context: ./backend/webhook-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/webhook-service/Dockerfile
     container_name: sss-webhook-service
     ports:
       - "3004:3004"
