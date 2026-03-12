@@ -16,6 +16,7 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 import * as anchor from "@coral-xyz/anchor";
+import { parseTOMLFile, buildInitializeArgs } from "./config";
 
 export const STABLECOIN_PROGRAM_ID = new PublicKey(
   "2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9"
@@ -146,6 +147,25 @@ export class SolanaStablecoin {
       TRANSFER_HOOK_PROGRAM_ID
     );
     return extraAccountMetaList;
+  }
+
+  /**
+   * Create a SolanaStablecoin instance and deploy a new mint from a TOML config file.
+   * @example const { sdk, mint } = await SolanaStablecoin.fromConfig('./config.toml', connection, adminKeypair);
+   */
+  static async fromConfig(
+    tomlPath: string,
+    connection: Connection,
+    authority: Keypair
+  ): Promise<{ sdk: SolanaStablecoin; mint: PublicKey }> {
+    const wallet = new anchor.Wallet(authority);
+    const sdk = new SolanaStablecoin(connection, wallet);
+    const config = parseTOMLFile(tomlPath);
+    const decimals = config.decimals ?? 6;
+    const args = buildInitializeArgs(config, authority.publicKey);
+    const mintKeypair = Keypair.generate();
+    const mint = await sdk.create(decimals, args, mintKeypair);
+    return { sdk, mint };
   }
 
   async create(
