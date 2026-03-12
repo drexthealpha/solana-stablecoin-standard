@@ -151,3 +151,33 @@ User (CLI/SDK)
 3. **Immutable Extension**: Transfer hook cannot be bypassed
 4. **Frozen-first Seize**: Prevents unauthorized seizure
 5. **Role Separation**: Different authorities for different functions
+
+## Production Security Model
+
+### Authority Upgrade Path: Single Keypair → Squads v4 Multisig
+
+The current devnet deployment uses a single keypair as `master_authority`. For mainnet, upgrade to Squads v4 multisig.
+
+**Squads v4 Program ID:** `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`
+
+| Stage | Authority Model | When |
+|-------|----------------|------|
+| Devnet / Prototype | Single keypair | Development |
+| Testnet / Audit | 2-of-3 Squads multisig | Pre-launch |
+| Mainnet | 3-of-5 Squads multisig + 24h timelock | Production |
+
+Migration steps:
+1. Create a Squads vault at app.squads.so
+2. Call `update_roles` with `new_master_authority = <squads_vault_pubkey>`
+3. Call `accept_authority` from the Squads vault
+4. All future `master_authority` instructions route through Squads approval
+
+### Data Layer Upgrade Path
+
+| Layer | Prototype | Production |
+|-------|-----------|------------|
+| Audit log | SQLite (better-sqlite3) | PostgreSQL + append-only role |
+| Event streaming | In-memory cache | Kafka / Helius webhooks |
+| Key management | File-based keypair | HSM (AWS CloudHSM or Ledger) |
+| RPC | Public devnet | Helius dedicated node |
+| Monitoring | Docker logs | Datadog / Grafana |

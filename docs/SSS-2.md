@@ -104,6 +104,27 @@ await compliance.seize(compromisedAccount, treasury, amount);
 
 **Important**: Account must be frozen before seizure. Attempting to seize from unfrozen account will fail with `AccountNotFrozen` error.
 
+## PYUSD Benchmark
+
+SSS-2 is designed to match the architecture of PYUSD — PayPal's regulated stablecoin on Solana mainnet.
+
+**PYUSD Mainnet Program ID:** `2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo`
+
+| Feature | PYUSD (PayPal) | SSS-2 |
+|---------|----------------|-------|
+| Token Standard | Token-2022 | Token-2022 |
+| Transfer Hook | ✅ Yes | ✅ Yes |
+| Permanent Delegate | ✅ Yes | ✅ Yes |
+| Freeze / Thaw | ✅ Yes | ✅ Yes |
+| Blacklist Enforcement | ✅ Yes | ✅ Yes |
+| Token Seizure | ✅ Yes | ✅ Yes |
+| Audit Trail | ✅ Yes | ✅ SQLite checksum chain |
+| Open Standard | ❌ Proprietary | ✅ Apache 2.0 |
+| Config Presets | ❌ No | ✅ SSS-1 / SSS-2 |
+| CLI Tooling | ❌ No | ✅ sss-token CLI |
+
+SSS-2 implements the same Token-2022 extension pattern as PYUSD while providing a reusable open standard any issuer can adopt in under 10 minutes.
+
 ## GENIUS Act Alignment
 
 SSS-2 is designed to meet US GENIUS Act requirements:
