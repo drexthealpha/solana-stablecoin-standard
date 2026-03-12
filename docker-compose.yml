@@ -73,13 +73,13 @@ services:
       - RPC_URL=${RPC_URL:-https://api.devnet.solana.com}
       - STABLECOIN_PROGRAM_ID=2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9
       - CHAINALYSIS_API_KEY=${CHAINALYSIS_API_KEY:-}
-      - AUDIT_LOG_PATH=/app/audit.log
+      - AUDIT_DB_PATH=/app/data/audit.db
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/compliance
       - LOG_LEVEL=info
       - MINT_ADDRESS=${MINT_ADDRESS:-}
     volumes:
       - ./wallet.json:/app/wallet.json:ro
-      - ./audit.log:/app/audit.log
+      - compliance-data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
       interval: 30s
@@ -127,7 +127,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_MULTIPLE_DATABASES=indexer,compliance,webhooks
+      - POSTGRES_DB=postgres
     ports:
       - "5432:5432"
     volumes:
@@ -141,6 +141,7 @@ services:
 
 volumes:
   mint-service-data:
+  compliance-data:
   postgres-data:
 
 networks:

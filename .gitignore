@@ -1,2 +1,8 @@
 wallet.json
 *.zip
+node_modules/
+dist/
+target/
+*.db
+.env
+.env.*

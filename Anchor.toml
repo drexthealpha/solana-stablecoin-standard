@@ -8,6 +8,7 @@ wallet = "~/.config/solana/id.json"
 
 [programs]
 stablecoin = "2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9"
+transfer_hook = "PQgUt1swYzA9RSAG7gpyTQpk9TtbVReX11ytkeYTJBo"
 
 [scripts]
 test = "anchor test --skip-deploy"
