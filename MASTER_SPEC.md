@@ -35,7 +35,29 @@ StablecoinError::AllowanceExceeded
 [x] DEVNET_PROOF.md with 15 TX hashes — all confirmed on devnet
 [x] SDK skeleton compiles
 [x] CLI builds
-[ ] Backend docker compose up — all 3 services healthy
-[ ] Tests passing
-[ ] Fuzz tests run with logs
 [x] All 9 docs written
+[x] GAP 2 — SQLite checksum chain audit log (better-sqlite3, SHA-256 prev_hash chain, /audit-log/verify, /audit-log/export)
+[ ] GAP 3 — Dockerfiles for all 4 backend services + TS/import fixes so docker compose up works
+[ ] GAP 4 — npm publish @stbr/sss-token@0.1.0-beta
+[ ] Tests passing (anchor test --skip-deploy)
+[ ] Fuzz tests run with real logs
+
+## GAPS LOG
+
+### GAP 1 — RESOLVED
+lib.rs: missing #[account(mut)] on mint in MintTokens and BurnTokens structs. Fixed in Playground.
+
+### GAP 2 — RESOLVED (commit: feat(gap-2): SQLite checksum chain audit log)
+audit.ts replaced with better-sqlite3 SQLite implementation.
+Schema: id, timestamp, action, actor, target, reason, amount, tx_sig, prev_hash, row_hash.
+Hash chain: SHA-256(prev_hash + timestamp + action + actor + target + tx_sig). Genesis prev_hash = "GENESIS".
+New routes: GET /audit-log/verify, GET /audit-log/export (CSV).
+package.json created with better-sqlite3 ^9.4.3.
+
+### GAP 3 — PENDING
+No Dockerfile exists in any of the 4 backend service folders.
+indexer/src/index.ts has a TypeScript syntax error on the onLogsCallback arrow function type annotation.
+compliance-service imports from ../../sdk/src which won't resolve inside Docker — needs path fix or bundling.
+
+### GAP 4 — PENDING
+sdk/package.json needs name set to @stbr/sss-token, files field, main/types fields, and npm publish run.
