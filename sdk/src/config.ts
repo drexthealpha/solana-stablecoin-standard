@@ -48,9 +48,7 @@ export function parseTOMLConfig(tomlContent: string): TOMLConfig {
     const [, key, value] = match;
     const cleanValue = value.replace(/^["']|["']$/g, "").trim();
 
-    if (key in config) {
-      (config as any)[key] = cleanValue;
-    }
+    (config as any)[key] = cleanValue;
   }
 
   SSSConfigSchema.parse(config);

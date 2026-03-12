@@ -265,6 +265,9 @@ describe("SSS-1 Integration Tests", () => {
 
     const tx = await program.methods
       .updateRoles({
+        newMasterAuthority: null,
+        newMasterMinter: null,
+        newBlacklister: null,
         newPauser: newPauser,
       })
       .accounts({
