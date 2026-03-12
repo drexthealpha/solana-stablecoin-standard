@@ -1,0 +1,27 @@
+{
+  "version": "0.1.0",
+  "name": "stablecoin",
+  "instructions": [
+    { "name": "initialize", "accounts": [], "args": [] },
+    { "name": "mint", "accounts": [], "args": [] },
+    { "name": "burn", "accounts": [], "args": [] },
+    { "name": "freezeAccount", "accounts": [], "args": [] },
+    { "name": "thawAccount", "accounts": [], "args": [] },
+    { "name": "pause", "accounts": [], "args": [] },
+    { "name": "unpause", "accounts": [], "args": [] },
+    { "name": "updateRoles", "accounts": [], "args": [] },
+    { "name": "acceptAuthority", "accounts": [], "args": [] },
+    { "name": "addToBlacklist", "accounts": [], "args": [] },
+    { "name": "removeFromBlacklist", "accounts": [], "args": [] },
+    { "name": "seize", "accounts": [], "args": [] },
+    { "name": "setMinterAllowance", "accounts": [], "args": [] },
+    { "name": "initializeExtraAccountMetaList", "accounts": [], "args": [] }
+  ],
+  "accounts": [
+    { "name": "StablecoinConfig", "type": { "kind": "struct", "fields": [] } },
+    { "name": "MinterAllowance", "type": { "kind": "struct", "fields": [] } },
+    { "name": "BlacklistEntry", "type": { "kind": "struct", "fields": [] } }
+  ],
+  "errors": [],
+  "metadata": { "address": "2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9" }
+}
