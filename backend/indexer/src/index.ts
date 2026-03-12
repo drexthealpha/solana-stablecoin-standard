@@ -83,7 +83,7 @@ async function parseInstruction(
   return null;
 }
 
-async function onLogsCallback(logs: any, ctx: any) => {
+const onLogsCallback = async (logs: any, ctx: any) => {
   try {
     const { logs: logMessages, signature, slot } = logs;
 
