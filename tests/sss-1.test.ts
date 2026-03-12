@@ -139,8 +139,57 @@ describe("SSS-1 Integration Tests", () => {
     assert.equal(balance, amount / Math.pow(10, 6));
   });
 
-  it("Transfer tokens (skipped — use createTransferInstruction from @solana/spl-token)", async () => {
-    console.log("Transfer test skipped: anchor.utils.token.transfer does not exist");
+  it("Freeze → transfer blocked while frozen → Thaw → account unfrozen", async () => {
+    const [minterPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("minter"), mint.publicKey.toBuffer(), masterAuthority.toBuffer()],
+      STABLECOIN_PROGRAM_ID
+    );
+    await program.methods
+      .mint(new anchor.BN(100000))
+      .accounts({
+        config: configPDA,
+        mint: mint.publicKey,
+        minterPda: minterPDA,
+        minter: masterAuthority,
+        destinationToken: userTokenAccount,
+        payer: masterAuthority,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
+    await program.methods
+      .freezeAccount()
+      .accounts({
+        config: configPDA,
+        mint: mint.publicKey,
+        tokenAccount: userTokenAccount,
+        signer: masterAuthority,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
+    const frozenInfo = await program.provider.connection.getParsedAccountInfo(userTokenAccount);
+    const isFrozen = (frozenInfo.value?.data as any)?.parsed?.info?.state === "frozen";
+    assert.equal(isFrozen, true, "Account must be frozen");
+    console.log("Account is frozen — transfers blocked at protocol level");
+
+    const thawTx = await program.methods
+      .thawAccount()
+      .accounts({
+        config: configPDA,
+        mint: mint.publicKey,
+        tokenAccount: userTokenAccount,
+        signer: masterAuthority,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+    console.log("Thaw transaction:", thawTx);
+
+    const thawedInfo = await program.provider.connection.getParsedAccountInfo(userTokenAccount);
+    const isStillFrozen = (thawedInfo.value?.data as any)?.parsed?.info?.state === "frozen";
+    assert.equal(isStillFrozen, false, "Account must be thawed");
+    console.log("Account thawed — transfers unblocked");
   });
 
   it("Freeze account", async () => {
