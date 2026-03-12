@@ -35,7 +35,7 @@ async function getComplianceModule(mint: PublicKey): Promise<ComplianceModule> {
 }
 
 app.get("/health", (req: Request, res: Response) => {
-  res.json({ status: "healthy", service: "compliance-service", timestamp: new Date().toISOString() });
+  res.json({ status: "ok", service: "compliance-service", timestamp: new Date().toISOString() });
 });
 
 app.post("/blacklist/add", async (req: Request, res: Response) => {

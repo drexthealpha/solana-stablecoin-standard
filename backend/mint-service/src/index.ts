@@ -58,7 +58,7 @@ async function getSdk(): Promise<SolanaStablecoin> {
 
 app.get("/health", (req: Request, res: Response) => {
   res.json({
-    status: "healthy",
+    status: "ok",
     service: "mint-service",
     timestamp: new Date().toISOString(),
   });

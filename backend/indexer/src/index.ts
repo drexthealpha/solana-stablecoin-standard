@@ -181,7 +181,7 @@ async function startIndexing(): Promise<void> {
 
 app.get("/health", (req: Request, res: Response) => {
   res.json({
-    status: "healthy",
+    status: "ok",
     service: "indexer",
     subscriptionId,
     eventCount: eventCache.length,

@@ -133,7 +133,7 @@ async function deliverWithRetry(
 
 app.get("/health", (req: Request, res: Response) => {
   res.json({
-    status: "healthy",
+    status: "ok",
     service: "webhook-service",
     registeredWebhooks: webhooks.size,
     timestamp: new Date().toISOString(),
