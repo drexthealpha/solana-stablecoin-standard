@@ -62,5 +62,8 @@ Fixed import paths to ../sdk/src/index and ../sdk/src/compliance.
 docker-compose.yml build contexts set to repo root (context: .) for all services.
 wallet.json added to .gitignore. repo-snapshot-v3.zip removed from git. *.zip added to .gitignore.
 
-### GAP 4 — PENDING
-sdk/package.json needs name set to @stbr/sss-token, files field, main/types fields, and npm publish run.
+### GAP 4 — RESOLVED
+sdk/package.json has name: @stbr/sss-token, files, main, types fields all set.
+@iarna/toml added to sdk dependencies. config.ts now uses TOML.parse() via @iarna/toml.
+SolanaStablecoin.fromConfig(tomlPath, connection, keypair) static method added to sdk/src/index.ts.
+Run: cd sdk && npm publish
