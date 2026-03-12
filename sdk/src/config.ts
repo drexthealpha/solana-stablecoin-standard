@@ -1,5 +1,18 @@
 import { PublicKey } from "@solana/web3.js";
 import { Preset, PresetConfig, InitializeArgs, Presets } from "./index";
+import { z } from "zod";
+
+const SSSConfigSchema = z.object({
+  preset: z.enum(["sss-1", "sss-2"]),
+  name: z.string().max(32).optional(),
+  symbol: z.string().max(10).optional(),
+  uri: z.string().max(200).optional(),
+  decimals: z.number().int().min(0).max(9).optional(),
+  master_authority: z.string().optional(),
+  master_minter: z.string().optional(),
+  blacklister: z.string().optional(),
+  pauser: z.string().optional(),
+});
 
 export interface PresetConfigOptions {
   preset: Preset;
@@ -39,6 +52,8 @@ export function parseTOMLConfig(tomlContent: string): TOMLConfig {
       (config as any)[key] = cleanValue;
     }
   }
+
+  SSSConfigSchema.parse(config);
 
   return config;
 }
