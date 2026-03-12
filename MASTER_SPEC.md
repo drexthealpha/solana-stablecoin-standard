@@ -37,7 +37,7 @@ StablecoinError::AllowanceExceeded
 [x] CLI builds
 [x] All 9 docs written
 [x] GAP 2 — SQLite checksum chain audit log (better-sqlite3, SHA-256 prev_hash chain, /audit-log/verify, /audit-log/export)
-[ ] GAP 3 — Dockerfiles for all 4 backend services + TS/import fixes so docker compose up works
+[x] GAP 3 — Dockerfiles for all 4 backend services + TS/import fixes so docker compose up works
 [ ] GAP 4 — npm publish @stbr/sss-token@0.1.0-beta
 [ ] Tests passing (anchor test --skip-deploy)
 [ ] Fuzz tests run with real logs
@@ -54,10 +54,11 @@ Hash chain: SHA-256(prev_hash + timestamp + action + actor + target + tx_sig). G
 New routes: GET /audit-log/verify, GET /audit-log/export (CSV).
 package.json created with better-sqlite3 ^9.4.3.
 
-### GAP 3 — PENDING
-No Dockerfile exists in any of the 4 backend service folders.
-indexer/src/index.ts has a TypeScript syntax error on the onLogsCallback arrow function type annotation.
-compliance-service imports from ../../sdk/src which won't resolve inside Docker — needs path fix or bundling.
+### GAP 3 — RESOLVED (commit: feat(gap-3): Dockerfiles for all 4 services, fix TS syntax error in indexer, fix SDK import paths)
+Created Dockerfile + tsconfig.json in backend/mint-service, backend/indexer, backend/compliance-service, backend/webhook-service.
+Fixed TS syntax error in indexer/src/index.ts — onLogsCallback changed to const arrow function.
+Fixed SDK import paths in compliance-service and mint-service from ../../sdk/src to ../../../sdk/src.
+wallet.json placeholder created, added to .gitignore.
 
 ### GAP 4 — PENDING
 sdk/package.json needs name set to @stbr/sss-token, files field, main/types fields, and npm publish run.
