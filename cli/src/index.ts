@@ -3,9 +3,9 @@
 import { Command } from "commander";
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
-import { SolanaStablecoin, STABLECOIN_PROGRAM_ID } from "../sdk/src/index";
-import { ComplianceModule } from "../sdk/src/compliance";
-import { buildInitializeArgs, getPreset, parseTOMLConfig, parseJSONConfig } from "../sdk/src/config";
+import { SolanaStablecoin, STABLECOIN_PROGRAM_ID } from "../../sdk/src/index";
+import { ComplianceModule } from "../../sdk/src/compliance";
+import { buildInitializeArgs, getPreset, parseTOMLConfig, parseJSONConfig } from "../../sdk/src/config";
 import * as fs from "fs";
 import * as path from "path";
 
