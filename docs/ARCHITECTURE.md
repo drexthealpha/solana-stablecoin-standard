@@ -56,6 +56,10 @@ Transfer → Token-2022 → CPI to Transfer Hook → Check Blacklist PDAs → Al
 
 24-hour timelock applies to all `master_authority` transfers.
 
+### Permanent Delegate Extension Note
+
+The `enablePermanentDelegate` flag in `StablecoinConfig` controls SSS-2 compliance gating at the program level. In a production deployment, `spl_token_2022::instruction::initialize_permanent_delegate` must also be called on the Token-2022 mint account in the same transaction as mint creation, before the mint is finalized. The current prototype stores the flag in the config PDA and enforces it at the instruction level; the Token-2022 extension itself is initialized in a separate step. Production issuers should initialize both atomically.
+
 ## Data Layer Upgrade Path
 
 | Layer | Prototype | Production |
