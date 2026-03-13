@@ -36,7 +36,6 @@ export class ComplianceModule {
 
     this.program = new anchor.Program(
       require("../idl/stablecoin.json"),
-      programId,
       provider
     ) as anchor.Program;
   }
@@ -169,7 +168,7 @@ export class ComplianceModule {
     const blacklistPDA = SolanaStablecoin.getBlacklistPDA(this.mint, address);
 
     try {
-      const entry = await this.program.account.blacklistEntry.fetch(
+      const entry = await (this.program.account as any).blacklistEntry.fetch(
         blacklistPDA
       );
       return (entry as any).isBlacklisted;
@@ -180,7 +179,7 @@ export class ComplianceModule {
 
   private async getConfig(): Promise<any> {
     const configPDA = SolanaStablecoin.getConfigPDA(this.mint);
-    return await this.program.account.stablecoinConfig.fetch(configPDA);
+    return await (this.program.account as any).stablecoinConfig.fetch(configPDA);
   }
 }
 

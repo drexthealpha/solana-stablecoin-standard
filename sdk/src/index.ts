@@ -113,7 +113,6 @@ export class SolanaStablecoin {
 
     this.program = new anchor.Program(
       require("../idl/stablecoin.json"),
-      programId,
       provider
     ) as anchor.Program;
   }
@@ -450,7 +449,7 @@ export class SolanaStablecoin {
   async getConfig(mint: PublicKey): Promise<StablecoinConfig | null> {
     const configPDA = SolanaStablecoin.getConfigPDA(mint);
     try {
-      const config = await this.program.account.stablecoinConfig.fetch(
+      const config = await (this.program.account as any).stablecoinConfig.fetch(
         configPDA
       );
       return config as unknown as StablecoinConfig;
