@@ -17,6 +17,7 @@ import {
 } from "@solana/spl-token";
 import * as anchor from "@coral-xyz/anchor";
 import { parseTOMLFile, buildInitializeArgs } from "./config";
+import { ComplianceModule } from "./compliance";
 
 export const STABLECOIN_PROGRAM_ID = new PublicKey(
   "2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9"
@@ -97,6 +98,8 @@ export class SolanaStablecoin {
   private connection: Connection;
   private wallet: anchor.Wallet;
   private program: anchor.Program;
+  public _mint: PublicKey | null = null;
+  public compliance: ComplianceModule | null = null;
 
   constructor(
     connection: Connection,
@@ -166,6 +169,40 @@ export class SolanaStablecoin {
     const mintKeypair = Keypair.generate();
     const mint = await sdk.create(decimals, args, mintKeypair);
     return { sdk, mint };
+  }
+
+  static async create(
+    connection: Connection,
+    opts: {
+      preset: PresetConfig;
+      name: string;
+      symbol: string;
+      uri?: string;
+      decimals?: number;
+      authority: Keypair;
+    }
+  ): Promise<SolanaStablecoin> {
+    const wallet = new anchor.Wallet(opts.authority);
+    const sdk = new SolanaStablecoin(connection, wallet);
+    const mintKeypair = Keypair.generate();
+    const args: InitializeArgs = {
+      name: opts.name,
+      symbol: opts.symbol,
+      uri: opts.uri ?? '',
+      masterAuthority: opts.authority.publicKey,
+      masterMinter: opts.authority.publicKey,
+      blacklister: opts.authority.publicKey,
+      pauser: opts.authority.publicKey,
+      enablePermanentDelegate: opts.preset.enablePermanentDelegate,
+      enableTransferHook: opts.preset.enableTransferHook,
+      defaultAccountFrozen: opts.preset.defaultAccountFrozen,
+    };
+    await sdk.create(opts.decimals ?? 6, args, mintKeypair);
+    sdk._mint = mintKeypair.publicKey;
+    if (opts.preset.enablePermanentDelegate) {
+      sdk.compliance = new ComplianceModule(connection, wallet, mintKeypair.publicKey);
+    }
+    return sdk;
   }
 
   async create(
@@ -256,9 +293,10 @@ export class SolanaStablecoin {
 
   async mint(
     mint: PublicKey,
-    recipient: PublicKey,
-    amount: number
+    opts: { recipient: PublicKey; amount: bigint; minter?: PublicKey }
   ): Promise<string> {
+    const recipient = opts.recipient;
+    const amount = opts.amount;
     const configPDA = SolanaStablecoin.getConfigPDA(mint);
     const recipientATA = await getAssociatedTokenAddress(
       mint,
@@ -277,18 +315,19 @@ export class SolanaStablecoin {
           recipientATA,
           recipient,
           mint,
-          TOKEN_PROGRAM_ID
+          TOKEN_2022_PROGRAM_ID
         )
       );
     }
 
+    const minter = opts.minter ?? this.wallet.publicKey;
     const mintIx = await this.program.methods
-      .mint(new anchor.BN(amount))
+      .mint(new anchor.BN(Number(amount)))
       .accounts({
         config: configPDA,
         mint: mint,
-        minterPda: SolanaStablecoin.getMinterPDA(mint, this.wallet.publicKey),
-        minter: this.wallet.publicKey,
+        minterPda: SolanaStablecoin.getMinterPDA(mint, minter),
+        minter: minter,
         destinationToken: recipientATA,
         payer: this.wallet.publicKey,
         systemProgram: SystemProgram.programId,
