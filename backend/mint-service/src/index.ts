@@ -62,20 +62,21 @@ app.post("/mint", async (req, res) => {
   }
 });
 
-app.post("/burn", (req, res) => {
-  const { mint, amount, keypairBase64 } = req.body;
-
-  if (!mint || !amount || !keypairBase64) {
-    return res.status(400).json({
-      success: false,
-      error: "Missing required fields: mint, amount, keypairBase64",
-    });
+app.post("/burn", async (req, res) => {
+  const { mint, amount } = req.body;
+  if (!mint || !amount) {
+    return res.status(400).json({ success: false, error: "Missing required fields: mint, amount" });
   }
-
-  res.json({
-    success: true,
-    note: "Use sss-token CLI for full burn",
-  });
+  try {
+    const connection = getConnection();
+    const wallet = getWallet();
+    const sdk = new SolanaStablecoin(connection, wallet);
+    const mintPubkey = new PublicKey(mint);
+    const tx = await sdk.burn(mintPubkey, parseInt(amount));
+    res.json({ success: true, transaction: tx });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
+  }
 });
 
 app.listen(PORT, () => {

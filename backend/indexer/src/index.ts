@@ -15,13 +15,18 @@ app.get("/health", (req, res) => {
   });
 });
 
-app.get("/transactions/:mint", (req, res) => {
+app.get("/transactions/:mint", async (req, res) => {
   const { mint } = req.params;
-  res.json({
-    mint,
-    transactions: [],
-    note: "Connect to Helius webhook for production indexing",
-  });
+  const rpcUrl = process.env.RPC_URL || "https://api.devnet.solana.com";
+  try {
+    const { Connection, PublicKey } = require("@solana/web3.js");
+    const connection = new Connection(rpcUrl, "confirmed");
+    const mintPubkey = new PublicKey(mint);
+    const sigs = await connection.getSignaturesForAddress(mintPubkey, { limit: 20 });
+    res.json({ mint, transactions: sigs.map((s: any) => ({ signature: s.signature, slot: s.slot, blockTime: s.blockTime, err: s.err })) });
+  } catch (e: any) {
+    res.status(500).json({ mint, transactions: [], error: e.message });
+  }
 });
 
 app.get("/supply/:mint", (req, res) => {
