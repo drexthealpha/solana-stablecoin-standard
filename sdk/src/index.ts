@@ -345,7 +345,7 @@ export class SolanaStablecoin {
       );
     }
 
-    const minter = opts.minter ?? this.wallet.publicKey;
+    const minter = options.minter ?? this.wallet.publicKey;
     const mintIx = await this.program.methods
       .mint(new anchor.BN(Number(amount)))
       .accounts({
