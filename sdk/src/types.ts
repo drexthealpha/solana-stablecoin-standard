@@ -18,7 +18,7 @@ export interface StablecoinConfigAccount {
 }
 
 export interface MinterAllowanceAccount {
-  allowance: bigint;
+  allowance: number;
   bump: number;
 }
 
