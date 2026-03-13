@@ -100,3 +100,5 @@ sss-token pause --mint <MINT>
 ---
 
 **Note:** This is a prototype. Single keypair authority. Do NOT use on mainnet without completing the Squads v4 upgrade.
+
+PostgreSQL upgrade path for audit table: same schema, same checksum chain algorithm, add `GRANT INSERT ON audit TO audit_writer; REVOKE UPDATE, DELETE ON audit FROM audit_writer;` to enforce append-only.

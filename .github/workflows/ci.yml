@@ -2,6 +2,18 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+  anchor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: metadaoproject/setup-anchor@v2
+        with:
+          anchor-version: '0.30.1'
+          solana-version: '1.18.0'
+          node-version: '20'
+      - run: anchor build
+      - run: anchor test --skip-deploy
+
   sdk:
     runs-on: ubuntu-latest
     steps:
@@ -30,23 +42,3 @@ jobs:
       - run: cd backend/mint-service && npm ci && npm run build
       - run: cd backend/indexer && npm ci && npm run build
       - run: cd backend/compliance-service && npm ci && npm run build
-
-  # anchor:
-  #   NOTE: Anchor build + test requires local Rust/Solana toolchain (anchor 0.30.1, solana 1.18.0).
-  #   Both programs are already deployed on devnet — see DEVNET_PROOF.md for Program IDs and TX hashes.
-  #   To run locally:
-  #     anchor build
-  #     anchor test --skip-deploy
-  #   CI runs SDK + CLI + backend TypeScript checks on every push.
-  #   Uncomment below when setup-anchor@v2 supports anchor 0.30.1 on ubuntu-latest:
-  #
-  # anchor:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: metadaoproject/setup-anchor@v2
-  #       with:
-  #         anchor-version: 0.30.1
-  #         solana-version: 1.18.0
-  #     - run: anchor build
-  #     - run: anchor test --skip-deploy

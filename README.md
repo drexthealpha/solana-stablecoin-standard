@@ -1,4 +1,5 @@
 [![CI](https://github.com/drexthealpha/solana-stablecoin-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/drexthealpha/solana-stablecoin-standard/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@stbr/sss-token)](https://npmjs.com/package/@stbr/sss-token)
 
 # Solana Stablecoin Standard
 
@@ -7,8 +8,8 @@ A comprehensive framework for building regulated stablecoins on Solana using Tok
 ## Quick Start
 
 ```bash
-# Install CLI
-npm install -g sss-token-cli
+# Install SDK
+npm install @stbr/sss-token
 
 # Initialize SSS-1 (minimal)
 sss-token init --preset sss-1 --name "My Stablecoin" --symbol "MSTB" --decimals 6

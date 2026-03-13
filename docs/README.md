@@ -1,4 +1,4 @@
-[![CI](https://github.com/YOUR_USERNAME/solana-stablecoin-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/solana-stablecoin-standard/actions/workflows/ci.yml)
+[![CI](https://github.com/drexthealpha/solana-stablecoin-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/drexthealpha/solana-stablecoin-standard/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@stbr/sss-token)](https://npmjs.com/package/@stbr/sss-token)
 
 # Solana Stablecoin Standard (SSS)
@@ -13,7 +13,7 @@ npm install @stbr/sss-token
 
 # Create SSS-1 stablecoin
 const mint = await sdk.create(6, {
-  ...Presets.SSS1,
+  ...Presets.SSS_1,
   name: "My Stablecoin",
   symbol: "MSTB",
   masterAuthority: authority,
@@ -24,7 +24,7 @@ const mint = await sdk.create(6, {
 
 # Create SSS-2 stablecoin
 const mint = await sdk.create(6, {
-  ...Presets.SSS2,
+  ...Presets.SSS_2,
   name: "Compliant USD",
   symbol: "CUSD",
   masterAuthority: authority,

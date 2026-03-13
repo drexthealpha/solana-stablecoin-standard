@@ -36,9 +36,21 @@ Per-minter allowances mirror Circle USDC design: each minter has a `MinterAllowa
 
 Screening occurs at **blacklist-add time**, NOT every transfer.
 
-Why? Transfer hook latency is protocol-critical. Off-chain screening on every transfer would add 100-500ms per transaction, degrading UX. Screening at onboarding + on-chain blacklist enforcement provides equivalent security with better performance.
+**Why?** Transfer hook latency is protocol-critical. Adding 100–500ms of HTTP round-trip on every transfer degrades UX and creates race conditions under load. Screening at onboarding + on-chain blacklist enforcement provides equivalent regulatory coverage with no performance cost.
 
-Integration point: Set `CHAINALYSIS_API_KEY` environment variable in compliance-service.
+**Integration target:**
+```
+POST https://api.chainalysis.com/api/kyt/v2/users/{userId}/transfers
+```
+```typescript
+interface KYTResponse {
+  risk: 'LOW' | 'MEDIUM' | 'HIGH' | 'SEVERE';
+  cluster: { name: string; category: string };
+  integration_target: 'POST https://api.chainalysis.com/api/kyt/v2/users/{userId}/transfers';
+}
+```
+
+Set `CHAINALYSIS_API_KEY` in compliance-service environment. The `/sanctions/check/:address` endpoint is pre-wired and returns the `KYTResponse` shape. In stub mode (no API key), returns `risk: LOW` for development.
 
 ## Section 5: Transfer Hook Zero-Gap Enforcement
 
