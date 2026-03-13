@@ -349,7 +349,29 @@ mintersCmd
   .description("List minters")
   .requiredOption("--mint <address>", "Mint address")
   .action(async (options) => {
-    console.log("Listing minters not yet implemented - requires indexer integration");
+    try {
+      const wallet = await getWallet();
+      const connection = await getConnection();
+      const sdk = new SolanaStablecoin(connection, wallet);
+      const mint = new PublicKey(options.mint);
+      const config = await sdk.getConfig(mint);
+      if (!config) {
+        console.log("Config not found for mint:", options.mint);
+        return;
+      }
+      console.log("\nKnown Roles:");
+      console.log("─".repeat(80));
+      console.log("master_minter:    ", (config as any).masterMinter?.toBase58?.() ?? config.masterMinter);
+      console.log("master_authority: ", (config as any).masterAuthority?.toBase58?.() ?? config.masterAuthority);
+      console.log("blacklister:      ", (config as any).blacklister?.toBase58?.() ?? config.blacklister);
+      console.log("pauser:           ", (config as any).pauser?.toBase58?.() ?? config.pauser);
+      console.log("─".repeat(80));
+      console.log("Note: Per-minter allowance PDAs require on-chain indexing to enumerate all delegated minters.");
+      console.log("Use: sss-token status --mint <MINT> for full config.");
+    } catch (error) {
+      console.error("Error:", error);
+      process.exit(1);
+    }
   });
 
 mintersCmd
