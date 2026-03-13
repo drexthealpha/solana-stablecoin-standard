@@ -8,7 +8,7 @@
 
 ## Reporting a Vulnerability
 
-**Email:** kauenet@superteam.fun
+**GitHub:** Open a private security advisory at https://github.com/drexthealpha/solana-stablecoin-standard/security/advisories/new
 
 **Policy:** 90-day responsible disclosure timeline.
 
