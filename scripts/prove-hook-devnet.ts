@@ -31,9 +31,9 @@ async function main() {
   const mint = new PublicKey(mintAddress);
 
   const hookIdl = require("../sdk/idl/transfer-hook.json");
-  const hookProgram = new anchor.Program(hookIdl, TRANSFER_HOOK_PROGRAM_ID, provider);
+  const hookProgram = new anchor.Program(hookIdl, provider);
   const stablecoinIdl = require("../sdk/idl/stablecoin.json");
-  const stablecoinProgram = new anchor.Program(stablecoinIdl, STABLECOIN_PROGRAM_ID, provider);
+  const stablecoinProgram = new anchor.Program(stablecoinIdl, provider);
 
   const [extraAccountMetaList] = PublicKey.findProgramAddressSync(
     [Buffer.from("extra-account-metas"), mint.toBuffer()],
