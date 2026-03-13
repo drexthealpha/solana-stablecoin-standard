@@ -1,262 +1,102 @@
-# Operations Runbook
+# Operations Runbook (Circle-style)
 
-This runbook provides step-by-step procedures for common stablecoin operations.
-
-## Prerequisites
-
-- CLI installed: `npm install -g sss-token-cli`
-- Wallet configured with sufficient SOL
-- Environment variables set:
-  ```bash
-  export RPC_URL="https://api.mainnet-beta.solana.com"
-  export KEYPAIR_PATH="/path/to/wallet.json"
-  ```
-
-## Initialization
-
-### Creating a New Stablecoin
+## Quick Start
 
 ```bash
-# SSS-1 (Minimal)
-sss-token init \
-  --preset sss-1 \
-  --name "My Stablecoin" \
-  --symbol "MSTB" \
-  --decimals 6
+# Start all services
+docker compose up
 
-# SSS-2 (Compliant)
-sss-token init \
-  --preset sss-2 \
-  --name "Compliant Coin" \
-  --symbol "CSTB" \
-  --decimals 6
+# Health checks
+curl http://localhost:3001/health  # mint-service
+curl http://localhost:3002/health  # indexer
+curl http://localhost:3003/health  # compliance-service
 ```
 
-Save the mint address and config PDA from output.
+## Minting Workflow
 
-## Minting
-
-### Standard Minting
-
+1. Set minter allowance:
 ```bash
-sss-token mint \
-  --mint <MINT_ADDRESS> \
-  --recipient <RECIPIENT_ADDRESS> \
-  --amount 1000000
+sss-token minters add --mint <MINT> --address <MINTER> --allowance 1000000
 ```
 
-### Via Backend API
-
+2. Mint tokens:
 ```bash
-curl -X POST http://localhost:3001/mint \
-  -H "Content-Type: application/json" \
-  -d '{
-    "recipient": "<RECIPIENT_ADDRESS>",
-    "amount": 1000000,
-    "reference": "invoice-123"
-  }'
+sss-token mint --mint <MINT> --recipient <RECIPIENT> --amount 1000000
 ```
 
-## Burning
-
+3. Verify supply:
 ```bash
-sss-token burn \
-  --mint <MINT_ADDRESS> \
-  --amount 500000
+sss-token supply --mint <MINT>
 ```
 
-## Account Management
+## Freeze/Thaw Procedure
 
-### Freeze Account
-
-Prevents token transfers from an account.
-
+**Freeze:**
 ```bash
-sss-token freeze \
-  --mint <MINT_ADDRESS> \
-  --address <ACCOUNT_TO_FREEZE>
+sss-token freeze --mint <MINT> --address <ACCOUNT>
 ```
 
-### Thaw Account
-
+**Thaw:**
 ```bash
-sss-token thaw \
-  --mint <MINT_ADDRESS> \
-  --address <ACCOUNT_TO_THAW>
+sss-token thaw --mint <MINT> --address <ACCOUNT>
 ```
 
-### Pause All Operations
+## Blacklist Procedure (SSS-2)
 
-Emergency stop for all minting and transfers.
-
+1. Screen address (optional):
 ```bash
-sss-token pause \
-  --mint <MINT_ADDRESS>
+curl http://localhost:3003/sanctions/check/<ADDRESS>
 ```
 
-### Unpause
-
+2. Add to blacklist:
 ```bash
-sss-token unpause \
-  --mint <MINT_ADDRESS>
+sss-token blacklist add --mint <MINT> --address <ADDRESS> --reason "KYC failure"
 ```
 
-## Compliance (SSS-2)
-
-### Add to Blacklist
-
+3. Verify:
 ```bash
-sss-token blacklist add \
-  --mint <MINT_ADDRESS> \
-  --address <ADDRESS> \
-  --reason "KYC failure"
+curl http://localhost:3003/blacklist/<ADDRESS>
 ```
 
-### Remove from Blacklist
+## Seizure Procedure (SSS-2)
 
-```bash
-sss-token blacklist remove \
-  --mint <MINT_ADDRESS> \
-  --address <ADDRESS>
-```
-
-### Seize Tokens
-
-1. First freeze the account:
+1. **Freeze first** (required):
 ```bash
 sss-token freeze --mint <MINT> --address <SUSPECTED>
 ```
 
-2. Then seize:
+2. **Verify frozen**:
 ```bash
-sss-token seize \
-  --mint <MINT_ADDRESS> \
-  --address <SUSPECTED_ACCOUNT> \
-  --to <TREASURY_ADDRESS> \
-  --amount <AMOUNT>
+# Check account state is "frozen"
 ```
 
-## Role Management
-
-### Update Roles
-
+3. **Seize**:
 ```bash
-# Update pauser
-sss-token update-roles \
-  --mint <MINT_ADDRESS> \
-  --new-pauser <NEW_PAUSER>
-
-# Update minter
-sss-token minters add \
-  --mint <MINT_ADDRESS> \
-  --address <MINTER_ADDRESS> \
-  --allowance 10000000
+sss-token seize --mint <MINT> --address <SUSPECTED> --to <TREASURY> --amount <AMOUNT>
 ```
 
-### Accept Authority Transfer
-
-If pending authority is set:
-
+4. **Audit log**:
 ```bash
-sss-token accept-authority \
-  --mint <MINT_ADDRESS>
-```
-
-## Monitoring
-
-### Check Status
-
-```bash
-sss-token status --mint <MINT_ADDRESS>
-```
-
-Output:
-```json
-{
-  "name": "My Stablecoin",
-  "symbol": "MSTB",
-  "isPaused": false,
-  "totalSupply": 100000000,
-  "masterAuthority": "...",
-  "enablePermanentDelegate": true
-}
-```
-
-### Get Supply
-
-```bash
-sss-token supply --mint <MINT_ADDRESS>
-```
-
-## Emergency Procedures
-
-### System Compromise
-
-1. **Immediate Pause**:
-```bash
-sss-token pause --mint <MINT_ADDRESS>
-```
-
-2. **Freeze Compromised Accounts**:
-```bash
-sss-token freeze --mint <MINT_ADDRESS> --address <COMPROMISED>
-```
-
-3. **Rotate Keys**:
-```bash
-sss-token update-roles --mint <MINT> --new-master-authority <NEW_KEY>
-```
-
-###Law Enforcement Request
-
-1. Verify request validity (subpoena, warrant)
-2. Document request in audit log
-3. Freeze account (if not already)
-4. Seize tokens to treasury
-5. Do not disclose to third parties
-
-## Troubleshooting
-
-### Common Errors
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| Unauthorized | Wrong signer | Check wallet matches authority |
-| Account Not Frozen | Seize before freeze | Freeze first |
-| Not Compliant Stablecoin | SSS-1 used for SSS-2 ops | Use SSS-2 preset |
-
-### Logs
-
-Check service logs:
-```bash
-# Mint service
-docker logs sss-mint-service
-
-# Indexer
-docker logs sss-indexer
-
-# Compliance
-docker logs sss-compliance-service
+curl http://localhost:3003/audit-log/export
 ```
 
 ## Production Hardening
 
-| Component | Prototype (Now) | Production |
-|-----------|----------------|------------|
-| Authority | Single keypair | Squads v4 multisig (`SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`) |
-| Audit log | SQLite (better-sqlite3) | PostgreSQL, append-only role, WAL archiving |
-| Event pipeline | In-memory cache | Apache Kafka, persistent consumer groups |
-| RPC endpoint | Public devnet | Helius dedicated node (helius.dev) |
-| Key storage | File-based id.json | HSM — AWS CloudHSM or Ledger hardware wallet |
-| Monitoring | Docker stdout | Datadog APM + PagerDuty alerts |
-| Secrets | .env file | AWS Secrets Manager or HashiCorp Vault |
+| Component | Prototype | Production |
+|-----------|-----------|------------|
+| Database | SQLite | PostgreSQL + WAL + append-only user + pgaudit |
+| Event streaming | Direct RPC | Kafka (replace direct RPC) |
+| Key storage | File keypair | HSM (AWS CloudHSM or Ledger) |
+| RPC | Public devnet | Helius dedicated node |
+| Indexer | Polling | Helius webhooks |
+| Authority | Single keypair | Squads v4 (2-of-3 or 3-of-5) |
 
-### Mainnet Deployment Checklist
+## Emergency: Pause All Transfers
 
-- [ ] Security audit completed (Ackee, OtterSec, or Neodyme)
-- [ ] Squads v4 multisig created and authority transferred
-- [ ] PostgreSQL deployed with append-only audit user
-- [ ] Helius RPC endpoint configured in all services
-- [ ] HSM provisioned for master_authority keypair
-- [ ] Monitoring and alerting live
-- [ ] Incident response runbook reviewed with team
+```bash
+sss-token pause --mint <MINT>
+```
+
+---
+
+**Note:** This is a prototype. Single keypair authority. Do NOT use on mainnet without completing the Squads v4 upgrade.

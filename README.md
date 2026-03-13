@@ -32,6 +32,39 @@ sss-token blacklist add --mint <MINT_ADDRESS> --address <ACCOUNT> --reason "KYC 
 npm install @stbr/sss-token
 ```
 
+## TypeScript SDK
+```typescript
+import { SolanaStablecoin, Presets } from "@stbr/sss-token";
+import { Connection, Keypair } from "@solana/web3.js";
+
+const connection = new Connection("https://api.devnet.solana.com");
+
+// One line to deploy a PYUSD-class compliant stablecoin
+const stable = await SolanaStablecoin.create(connection, {
+  preset: Presets.SSS_2,
+  name: "My Stablecoin",
+  symbol: "MYUSD",
+  decimals: 6,
+  authority: adminKeypair,
+});
+
+// Mint tokens (uses deployed mint automatically)
+await stable.mint({ recipient: recipientPublicKey, amount: 1_000_000n, minter: adminKeypair.publicKey });
+
+// SSS-2: blacklist enforcement
+await stable.compliance.blacklistAdd(suspiciousAddress, "OFAC match");
+
+// SSS-2: seize from frozen account
+await stable.compliance.seize(frozenAccount, treasuryAccount);
+
+// Query total supply
+const supply = await stable.getTotalSupply();
+console.log("Total supply:", supply);
+```
+
+> Install: `npm install @stbr/sss-token`
+> See [docs/SDK.md](docs/SDK.md) for full API reference.
+
 ## Preset Comparison
 
 | Feature | SSS-1 | SSS-2 |
@@ -55,6 +88,8 @@ npm install @stbr/sss-token
 - [Operations](docs/OPERATIONS.md)
 - [SDK Reference](docs/SDK.md)
 - [API Reference](docs/API.md)
+- [Oracle Module](docs/ORACLE.md)
+- [Security Policy](docs/SECURITY.md)
 
 ## Program IDs
 

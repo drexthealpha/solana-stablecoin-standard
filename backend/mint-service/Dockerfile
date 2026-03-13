@@ -1,10 +1,8 @@
 FROM node:20-alpine
-RUN apk add --no-cache python3 make g++ curl
 WORKDIR /app
-COPY backend/mint-service/package.json ./
-COPY backend/mint-service/src ./src
-COPY backend/mint-service/tsconfig.json ./tsconfig.json
-COPY sdk ./sdk
+COPY package.json ./
 RUN npm install
-RUN npx tsc --outDir dist
+COPY . .
+RUN npm run build
+EXPOSE 3001
 CMD ["node", "dist/index.js"]

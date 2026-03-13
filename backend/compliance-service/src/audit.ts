@@ -1,7 +1,5 @@
 import Database from 'better-sqlite3';
 import { createHash } from 'crypto';
-import * as path from 'path';
-import * as fs from 'fs';
 
 export interface AuditRow {
   id?: number;
@@ -16,10 +14,8 @@ export interface AuditRow {
   row_hash?: string;
 }
 
-const DB_PATH = process.env.AUDIT_DB_PATH || path.join(__dirname, '../../audit.db');
-
-function getDb(): Database.Database {
-  const db = new Database(DB_PATH);
+export function initDb(path: string): Database.Database {
+  const db = new Database(path);
   db.exec(`
     CREATE TABLE IF NOT EXISTS audit (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,17 +33,17 @@ function getDb(): Database.Database {
   return db;
 }
 
-function computeHash(prev_hash: string, row: AuditRow): string {
+function computeRowHash(prev_hash: string, entry: { timestamp: string; action: string; actor: string; target: string; tx_sig: string }): string {
   return createHash('sha256')
-    .update(prev_hash + row.timestamp + row.action + row.actor + row.target + row.tx_sig)
+    .update(prev_hash + entry.timestamp + entry.action + entry.actor + entry.target + entry.tx_sig)
     .digest('hex');
 }
 
-export function appendAudit(entry: Omit<AuditRow, 'id' | 'prev_hash' | 'row_hash'>): void {
-  const db = getDb();
-  const prev = db.prepare('SELECT row_hash FROM audit ORDER BY id DESC LIMIT 1').get() as any;
-  const prev_hash = prev?.row_hash ?? 'GENESIS';
-  const row_hash = computeHash(prev_hash, entry as AuditRow);
+export function appendAudit(db: Database.Database, entry: Omit<AuditRow, 'id' | 'prev_hash' | 'row_hash'>): void {
+  const lastRow = db.prepare('SELECT row_hash FROM audit ORDER BY id DESC LIMIT 1').get() as { row_hash: string } | undefined;
+  const prev_hash = lastRow?.row_hash ?? 'GENESIS';
+  const row_hash = computeRowHash(prev_hash, entry);
+
   db.prepare(
     'INSERT INTO audit (timestamp, action, actor, target, reason, amount, tx_sig, prev_hash, row_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(
@@ -61,41 +57,36 @@ export function appendAudit(entry: Omit<AuditRow, 'id' | 'prev_hash' | 'row_hash
     prev_hash,
     row_hash
   );
-  db.close();
 }
 
-export function verifyChain(): { valid: boolean; rows: number; error?: string } {
-  const db = getDb();
+export function verifyChain(db: Database.Database): { valid: boolean; rows: number; error?: string } {
   const rows = db.prepare('SELECT * FROM audit ORDER BY id ASC').all() as AuditRow[];
-  db.close();
+
+  if (rows.length === 0) {
+    return { valid: true, rows: 0 };
+  }
+
+  if (rows[0].prev_hash !== 'GENESIS') {
+    return { valid: false, rows: rows.length, error: 'First row prev_hash is not GENESIS' };
+  }
 
   let prev_hash = 'GENESIS';
   for (const row of rows) {
-    const expected = computeHash(prev_hash, row);
+    const expected = computeRowHash(prev_hash, row);
     if (expected !== row.row_hash) {
-      return { valid: false, rows: rows.length, error: `AUDIT_CHAIN_TAMPERED at id=${row.id}` };
+      return { valid: false, rows: rows.length, error: `Row ${row.id} hash mismatch` };
     }
     prev_hash = row.row_hash!;
   }
+
   return { valid: true, rows: rows.length };
 }
 
-export function getEntries(limit = 100, offset = 0): AuditRow[] {
-  const db = getDb();
-  const rows = db.prepare('SELECT * FROM audit ORDER BY id DESC LIMIT ? OFFSET ?').all(limit, offset) as AuditRow[];
-  db.close();
-  return rows;
-}
-
-export function exportCSV(): string {
-  const db = getDb();
+export function exportCsv(db: Database.Database): string {
   const rows = db.prepare('SELECT * FROM audit ORDER BY id ASC').all() as AuditRow[];
-  db.close();
   const header = 'id,timestamp,action,actor,target,reason,amount,tx_sig,prev_hash,row_hash';
   const lines = rows.map(r =>
     `${r.id},${r.timestamp},${r.action},${r.actor},${r.target},${r.reason},${r.amount},${r.tx_sig},${r.prev_hash},${r.row_hash}`
   );
   return [header, ...lines].join('\n');
 }
-
-export default { appendAudit, verifyChain, getEntries, exportCSV };

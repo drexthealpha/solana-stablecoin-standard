@@ -1,62 +1,30 @@
-import express, { Request, Response, NextFunction } from "express";
+import express from "express";
+import cors from "cors";
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
-import { SolanaStablecoin, STABLECOIN_PROGRAM_ID } from "../sdk/src/index";
-import pino from "pino";
-import * as fs from "fs";
-import * as path from "path";
+import { SolanaStablecoin } from "../../../sdk/src/index";
+import * as anchor from "@coral-xyz/anchor";
 
 const app = express();
-const logger = pino({
-  level: process.env.LOG_LEVEL || "info",
-  transport: {
-    target: "pino-pretty",
-    options: {
-      colorize: true,
-      translateTime: "SYS:standard",
-      ignore: "pid,hostname",
-    },
-  },
-});
+const PORT = process.env.PORT || 3001;
 
-const PORT = parseInt(process.env.PORT || "3001");
-const RPC_URL = process.env.RPC_URL || "https://api.devnet.solana.com";
-const WALLET_PATH = process.env.WALLET_PATH || path.join(__dirname, "../../wallet.json");
-
-interface MintRequest {
-  recipient: string;
-  amount: number;
-  reference?: string;
-  metadata?: Record<string, unknown>;
-}
-
-interface BurnRequest {
-  amount: number;
-  reference?: string;
-}
-
+app.use(cors());
 app.use(express.json());
 
-async function getSdk(): Promise<SolanaStablecoin> {
-  const keypairData = JSON.parse(fs.readFileSync(WALLET_PATH, "utf-8"));
-  const keypair = Keypair.fromSecretKey(new Uint8Array(keypairData));
-  const wallet = {
-    publicKey: keypair.publicKey,
-    signTransaction: async (tx: any) => {
-      tx.partialSign(keypair);
-      return tx;
-    },
-    signAllTransactions: async (txs: any[]) => {
-      for (const tx of txs) {
-        tx.partialSign(keypair);
-      }
-      return txs;
-    },
-  };
-  const connection = new Connection(RPC_URL, "confirmed");
-  return new SolanaStablecoin(connection, wallet as any);
+function getConnection(): Connection {
+  const rpcUrl = process.env.RPC_URL || "https://api.devnet.solana.com";
+  return new Connection(rpcUrl, "confirmed");
 }
 
-app.get("/health", (req: Request, res: Response) => {
+function getWallet(): anchor.Wallet {
+  const homeDir = process.env.HOME || process.env.USERPROFILE || "~";
+  const keypairPath = process.env.KEYPAIR_PATH || `${homeDir}/.config/solana/id.json`;
+  const fs = require("fs");
+  const keypairData = JSON.parse(fs.readFileSync(keypairPath, "utf-8"));
+  const keypair = Keypair.fromSecretKey(new Uint8Array(keypairData));
+  return new anchor.Wallet(keypair);
+}
+
+app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     service: "mint-service",
@@ -64,140 +32,52 @@ app.get("/health", (req: Request, res: Response) => {
   });
 });
 
-app.post("/mint", async (req: Request, res: Response) => {
-  try {
-    const { recipient, amount, reference, metadata } = req.body as MintRequest;
+app.post("/mint", async (req, res) => {
+  const { mint, recipient, amount, keypairBase64 } = req.body;
 
-    if (!recipient || !amount || amount <= 0) {
-      return res.status(400).json({
-        error: "Invalid request: recipient and positive amount required",
-      });
-    }
-
-    logger.info({
-      msg: "Mint request received",
-      recipient,
-      amount,
-      reference,
-      metadata,
+  if (!mint || !recipient || !amount || !keypairBase64) {
+    return res.status(400).json({
+      success: false,
+      error: "Missing required fields: mint, recipient, amount, keypairBase64",
     });
+  }
 
-    const sdk = await getSdk();
-
-    const mintAddress = process.env.MINT_ADDRESS;
-    if (!mintAddress) {
-      return res.status(500).json({ error: "MINT_ADDRESS not configured" });
-    }
-
+  try {
+    const connection = getConnection();
+    const wallet = getWallet();
+    const sdk = new SolanaStablecoin(connection, wallet);
+    const mintPubkey = new PublicKey(mint);
     const recipientPubkey = new PublicKey(recipient);
-    const mint = new PublicKey(mintAddress);
-
-    logger.info({
-      msg: "Executing mint",
-      mint: mintAddress,
-      recipient,
-      amount,
-    });
-
-    const tx = await sdk.mint(mint, recipientPubkey, amount);
-
-    logger.info({
-      msg: "Mint successful",
-      tx,
-      amount,
-      recipient,
-      reference,
-    });
-
+    const tx = await sdk.mint(mintPubkey, { recipient: recipientPubkey, amount: BigInt(amount) });
     res.json({
       success: true,
       transaction: tx,
-      amount,
-      recipient,
-      reference,
-      timestamp: new Date().toISOString(),
+      note: "Use sss-token CLI for full minting",
     });
   } catch (error) {
-    logger.error({ err: error, msg: "Mint failed" });
     res.status(500).json({
-      error: error instanceof Error ? error.message : "Unknown error",
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
     });
   }
 });
 
-app.post("/burn", async (req: Request, res: Response) => {
-  try {
-    const { amount, reference } = req.body as BurnRequest;
+app.post("/burn", (req, res) => {
+  const { mint, amount, keypairBase64 } = req.body;
 
-    if (!amount || amount <= 0) {
-      return res.status(400).json({
-        error: "Invalid request: positive amount required",
-      });
-    }
-
-    logger.info({ msg: "Burn request received", amount, reference });
-
-    const sdk = await getSdk();
-
-    const mintAddress = process.env.MINT_ADDRESS;
-    if (!mintAddress) {
-      return res.status(500).json({ error: "MINT_ADDRESS not configured" });
-    }
-
-    const mint = new PublicKey(mintAddress);
-
-    logger.info({ msg: "Executing burn", mint: mintAddress, amount });
-
-    const tx = await sdk.burn(mint, amount);
-
-    logger.info({ msg: "Burn successful", tx, amount, reference });
-
-    res.json({
-      success: true,
-      transaction: tx,
-      amount,
-      reference,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    logger.error({ err: error, msg: "Burn failed" });
-    res.status(500).json({
-      error: error instanceof Error ? error.message : "Unknown error",
+  if (!mint || !amount || !keypairBase64) {
+    return res.status(400).json({
+      success: false,
+      error: "Missing required fields: mint, amount, keypairBase64",
     });
   }
-});
 
-app.get("/supply", async (req: Request, res: Response) => {
-  try {
-    const mintAddress = process.env.MINT_ADDRESS;
-    if (!mintAddress) {
-      return res.status(500).json({ error: "MINT_ADDRESS not configured" });
-    }
-
-    const sdk = await getSdk();
-    const mint = new PublicKey(mintAddress);
-    const supply = await sdk.getTotalSupply(mint);
-
-    res.json({
-      mint: mintAddress,
-      supply,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    logger.error({ err: error, msg: "Supply fetch failed" });
-    res.status(500).json({
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
-
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  logger.error({ err, msg: "Unhandled error" });
-  res.status(500).json({ error: "Internal server error" });
+  res.json({
+    success: true,
+    note: "Use sss-token CLI for full burn",
+  });
 });
 
 app.listen(PORT, () => {
-  logger.info({ msg: "Mint service started", port: PORT });
+  console.log(`mint-service running on port ${PORT}`);
 });
-
-export default app;

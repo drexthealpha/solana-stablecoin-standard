@@ -1,183 +1,66 @@
 # Architecture
 
-The Solana Stablecoin Standard is built on a multi-layer architecture designed for security, compliance, and extensibility.
-
 ## Layer Model
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        CLIENT LAYER                            │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────────────┐  │
-│  │   SDK   │  │   CLI   │  │  Indexer │  │  Webhook        │  │
-│  │ (TS)    │  │         │  │          │  │  Service        │  │
-│  └────┬────┘  └────┬────┘  └────┬─────┘  └────────┬────────┘  │
-└───────┼────────────┼────────────┼─────────────────┼───────────┘
-        │            │            │                 │
-        ▼            ▼            ▼                 ▼
+│                         LAYER 1: BASE SDK                       │
+│    SolanaStablecoin Class  │  ComplianceModule  │  Presets    │
+└─────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                       ON-CHAIN LAYER                           │
-│  ┌─────────────────────┐    ┌─────────────────────────────┐ │
-│  │   Stablecoin        │    │   Transfer Hook              │ │
-│  │   Program           │    │   Program                    │ │
-│  │                     │    │                              │ │
-│  │ - Config PDA        │    │ - Extra Account Meta List   │ │
-│  │ - Minter PDA        │    │ - Blacklist Validation      │ │
-│  │ - Blacklist PDA     │    │                              │ │
-│  └──────────┬──────────┘    └──────────────┬────────────────┘ │
-│             │                             │                   │
-│             └─────────────┬───────────────┘                   │
-│                           ▼                                    │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │                    Token-2022                              ││
-│  │  - Mint / Burn / Freeze / Thaw / Transfer                 ││
-│  │  - Transfer Hook Extension                                 ││
-│  └─────────────────────────────────────────────────────────────┘│
+│                      LAYER 2: MODULES                           │
+│         Mint Module  │  Freeze Module  │  Compliance Module     │
+└─────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      LAYER 3: PRESETS                           │
+│              SSS-1 (Minimal)        │        SSS-2 (Compliant) │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Data Flows
+## PDA Structure
 
-### Initialization Flow
+| PDA | Seeds | Purpose |
+|-----|-------|---------|
+| Config | `[b"config", mint.key().as_ref()]` | Token configuration |
+| Blacklist | `[b"blacklist", mint.key().as_ref(), address.key().as_ref()]` | Compliance status |
+| Minter | `[b"minter", mint.key().as_ref(), minter.key().as_ref()]` | Minting allowance |
+| Hook Meta | `[b"extra-account-metas", mint.key().as_ref()]` | Transfer hook accounts |
 
-```
-User (CLI/SDK)
-      │
-      ▼
-┌──────────────┐
-│ Initialize   │
-│ Instruction  │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────────────────────────────┐
-│ 1. Create Mint Account (Token-2022) │
-│ 2. Initialize Config PDA              │
-│ 3. Set mint authority to Config PDA   │
-└──────┬───────────────────────────────┘
-       │
-       ▼ (If SSS-2)
-┌──────────────────────────────────────┐
-│ Initialize Extra Account Meta List   │
-│ Register with Transfer Hook           │
-└──────────────────────────────────────┘
-```
-
-### Transfer Flow (SSS-2)
+## Data Flow: Mint
 
 ```
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ User     │────▶│ Token-2022 │────▶│ Transfer Hook   │
-│ Transfer │     │            │     │ Program         │
-└──────────┘     └─────┬──────┘     └────────┬────────┘
-                        │                    │
-                        │    CPI             │
-                        ▼                    ▼
-                 ┌──────────────┐      ┌──────────────┐
-                 │ Source      │      │ Destination  │
-                 │ Token A/C   │      │ Token A/C   │
-                 └──────────────┘      └──────────────┘
-                        │                    │
-                        └────────┬───────────┘
-                                 ▼
-                    ┌──────────────────────────┐
-                    │ Check Blacklist PDAs    │
-                    │ (Source & Destination)  │
-                    └───────────┬──────────────┘
-                                │
-                    ┌───────────┴───────────┐
-                    ▼                       ▼
-            ┌──────────────┐       ┌──────────────┐
-            │ Blacklisted  │       │ Not          │
-            │ → REJECT     │       │ Blacklisted  │
-            └──────────────┘       │ → APPROVE    │
-                                   └──────────────┘
+User → SDK.create() → initialize instruction → Token-2022 Mint + Config PDA
 ```
 
-## Program Interactions
+## Data Flow: Blacklist + Transfer Hook
 
-### PDA Structure
-
-| PDA | Seeds | Owner | Purpose |
-|-----|-------|-------|---------|
-| Config | `[b"config", mint]` | Stablecoin | Token configuration |
-| Minter | `[b"minter", mint, minter]` | Stablecoin | Minting allowance |
-| Blacklist | `[b"blacklist", mint, address]` | Stablecoin | Compliance status |
-| Extra Account Meta | `[b"extra-account-metas", mint]` | Transfer Hook | Hook accounts |
-
-### Cross-Program Calls
-
-1. **Stablecoin → Token-2022**
-   - `mint_to` - Create tokens
-   - `burn` - Destroy tokens
-   - `freeze_account` / `thaw_account` - Freeze/thaw
-   - `transfer_checked` - Seizure
-
-2. **Token-2022 → Transfer Hook**
-   - CPI to `execute` instruction
-   - Passes source, destination, mint, extra accounts
-
-3. **Transfer Hook → Stablecoin**
-   - Reads Blacklist PDAs
-   - No CPI back (read-only)
-
-## Component Responsibilities
-
-### SDK (`sdk/src/index.ts`)
-
-- TypeScript interface for all operations
-- Transaction building
-- Account derivation (PDAs)
-- Error handling
-
-### CLI (`cli/src/index.ts`)
-
-- Command-line interface
-- Config file parsing (TOML/JSON)
-- Human-readable output
-
-### Backend Services
-
-| Service | Port | Responsibility |
-|---------|------|----------------|
-| mint-service | 3001 | Fiat-to-crypto lifecycle |
-| indexer | 3002 | Event parsing, webhooks |
-| compliance-service | 3003 | Blacklist, seizure, audit |
-| webhook-service | 3004 | Event delivery |
-
-## Security Considerations
-
-1. **PDA-based Authority**: All operations use PDAs controlled by the program
-2. **Signer Seeds**: CPI calls signed by program-derived addresses
-3. **Immutable Extension**: Transfer hook cannot be bypassed
-4. **Frozen-first Seize**: Prevents unauthorized seizure
-5. **Role Separation**: Different authorities for different functions
+```
+Transfer → Token-2022 → CPI to Transfer Hook → Check Blacklist PDAs → Allow/Reject
+```
 
 ## Production Security Model
 
-### Authority Upgrade Path: Single Keypair → Squads v4 Multisig
-
-The current devnet deployment uses a single keypair as `master_authority`. For mainnet, upgrade to Squads v4 multisig.
+### Squads v4 Multisig Upgrade
 
 **Squads v4 Program ID:** `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`
 
-| Stage | Authority Model | When |
-|-------|----------------|------|
-| Devnet / Prototype | Single keypair | Development |
-| Testnet / Audit | 2-of-3 Squads multisig | Pre-launch |
-| Mainnet | 3-of-5 Squads multisig + 24h timelock | Production |
+| Stage | Model | Quorum | Timelock |
+|-------|-------|--------|----------|
+| Prototype | Single keypair | 1-of-1 | None |
+| Testnet | Squads v4 | 2-of-3 | None |
+| Mainnet | Squads v4 | 3-of-5 | 24 hours |
 
-Migration steps:
-1. Create a Squads vault at app.squads.so
-2. Call `update_roles` with `new_master_authority = <squads_vault_pubkey>`
-3. Call `accept_authority` from the Squads vault
-4. All future `master_authority` instructions route through Squads approval
+24-hour timelock applies to all `master_authority` transfers.
 
-### Data Layer Upgrade Path
+## Data Layer Upgrade Path
 
 | Layer | Prototype | Production |
 |-------|-----------|------------|
-| Audit log | SQLite (better-sqlite3) | PostgreSQL + append-only role |
-| Event streaming | In-memory cache | Kafka / Helius webhooks |
-| Key management | File-based keypair | HSM (AWS CloudHSM or Ledger) |
+| Database | SQLite (better-sqlite3) | PostgreSQL + WAL + append-only user + pgaudit |
+| Event streaming | In-memory cache | Kafka |
+| Key management | File keypair | HSM |
 | RPC | Public devnet | Helius dedicated node |
-| Monitoring | Docker logs | Datadog / Grafana |

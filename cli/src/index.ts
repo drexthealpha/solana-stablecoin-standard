@@ -2,6 +2,7 @@
 
 import { Command } from "commander";
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
+import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import * as anchor from "@coral-xyz/anchor";
 import { SolanaStablecoin, STABLECOIN_PROGRAM_ID } from "../../sdk/src/index";
 import { ComplianceModule } from "../../sdk/src/compliance";
@@ -94,7 +95,7 @@ program
       const amount = parseInt(options.amount);
 
       console.log(`Minting ${amount} tokens to ${recipient.toBase58()}...`);
-      const tx = await sdk.mint(mint, recipient, amount);
+      const tx = await sdk.mint(mint, { recipient, amount: BigInt(amount) });
       console.log(`Minted! Transaction: ${tx}`);
     } catch (error) {
       console.error("Error:", error);
@@ -399,11 +400,150 @@ mintersCmd
     }
   });
 
-program
-  .command("audit-log")
-  .description("Get audit log (requires indexer)")
-  .action(async () => {
-    console.log("Audit log not yet implemented - requires indexer integration");
-  });
+  program
+    .command("audit-log")
+    .description("View and verify the compliance audit log")
+    .option("--limit <number>", "Number of entries to show", "50")
+    .option("--offset <number>", "Offset for pagination", "0")
+    .option("--service-url <url>", "Compliance service URL", "http://localhost:3003")
+    .option("--verify", "Verify chain integrity instead of showing entries")
+    .option("--export", "Export full audit log as CSV")
+    .action(async (options) => {
+      const serviceUrl = options.serviceUrl;
+      try {
+        if (options.verify) {
+          const res = await fetch(`${serviceUrl}/audit-log/verify`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json() as { valid: boolean; rows: number; error?: string };
+          if (data.valid) {
+            console.log(`✅ Audit chain VALID — ${data.rows} rows verified`);
+          } else {
+            console.log(`❌ Audit chain TAMPERED — ${data.error}`);
+            process.exit(1);
+          }
+          return;
+        }
+        if (options.export) {
+          const res = await fetch(`${serviceUrl}/audit-log/export`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const csv = await res.text();
+          console.log(csv);
+          return;
+        }
+        const limit = parseInt(options.limit);
+        const offset = parseInt(options.offset);
+        const res = await fetch(`${serviceUrl}/audit-log?limit=${limit}&offset=${offset}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+        const data = await res.json() as { entries: any[]; limit: number; offset: number };
+        if (data.entries.length === 0) {
+          console.log("No audit log entries found.");
+          return;
+        }
+        console.log("\nAudit Log:");
+        console.log("─".repeat(100));
+        console.log(
+          "ID".padEnd(6) +
+          "Timestamp".padEnd(25) +
+          "Action".padEnd(20) +
+          "Actor".padEnd(15) +
+          "Target".padEnd(15) +
+          "TX Sig"
+        );
+        console.log("─".repeat(100));
+        for (const entry of data.entries) {
+          const actor = entry.actor?.slice(0, 12) ?? "";
+          const target = entry.target?.slice(0, 12) ?? "";
+          const txSig = entry.tx_sig?.slice(0, 16) ?? "N/A";
+          console.log(
+            String(entry.id).padEnd(6) +
+            entry.timestamp.padEnd(25) +
+            entry.action.padEnd(20) +
+            (actor + "...").padEnd(15) +
+            (target + "...").padEnd(15) +
+            txSig + "..."
+          );
+        }
+        console.log("─".repeat(100));
+        console.log(`Showing ${data.entries.length} entries (offset: ${offset})`);
+      } catch (error) {
+        console.error("Error:", error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
 
-program.parse(process.argv);
+  program
+    .command("holders")
+    .description("List all token holders for a mint")
+    .requiredOption("--mint <address>", "Mint address")
+    .option("--min-balance <amount>", "Minimum token balance filter (in base units)", "0")
+    .action(async (options) => {
+      try {
+        const connection = await getConnection();
+        const mintPubkey = new PublicKey(options.mint);
+        const minBalance = parseInt(options.minBalance);
+
+        console.log(`Fetching token accounts for mint: ${mintPubkey.toBase58()}`);
+        console.log("(This may take a few seconds on devnet...)");
+
+        const accounts = await connection.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
+          filters: [
+            { dataSize: 165 },
+            {
+              memcmp: {
+                offset: 0,
+                bytes: mintPubkey.toBase58(),
+              },
+            },
+          ],
+        });
+
+        const holders: { address: string; owner: string; balance: bigint }[] = [];
+
+        for (const { pubkey, account } of accounts) {
+          const data = account.data;
+          if (data.length < 72) continue;
+          // Parse u64 little-endian balance at offset 64
+          const balanceBuf = data.slice(64, 72);
+          const balance = balanceBuf.readBigUInt64LE(0);
+          if (balance < BigInt(minBalance)) continue;
+          const ownerBytes = data.slice(32, 64);
+          const owner = new PublicKey(ownerBytes).toBase58();
+          holders.push({
+            address: pubkey.toBase58(),
+            owner,
+            balance,
+          });
+        }
+
+        // Sort by balance descending
+        holders.sort((a, b) => (a.balance > b.balance ? -1 : 1));
+
+        if (holders.length === 0) {
+          console.log("No holders found" + (minBalance > 0 ? ` with balance >= ${minBalance}` : "") + ".");
+          return;
+        }
+
+        console.log("\nToken Holders:");
+        console.log("─".repeat(120));
+        console.log(
+          "Token Account".padEnd(46) +
+          "Owner".padEnd(46) +
+          "Balance"
+        );
+        console.log("─".repeat(120));
+        for (const h of holders) {
+          console.log(
+            h.address.padEnd(46) +
+            h.owner.padEnd(46) +
+            h.balance.toString()
+          );
+        }
+        console.log("─".repeat(120));
+        console.log(`Total holders: ${holders.length}`);
+      } catch (error) {
+        console.error("Error:", error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  program.parse(process.argv);

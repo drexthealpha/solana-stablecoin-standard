@@ -79,6 +79,17 @@ export interface PresetConfig {
   defaultAccountFrozen: boolean;
 }
 
+export type CreateOpts = {
+  name: string;
+  symbol: string;
+  uri?: string;
+  decimals?: number;
+  authority: Keypair;
+} & (
+  | { preset: PresetConfig; extensions?: never }
+  | { extensions: { permanentDelegate: boolean; transferHook: boolean; defaultAccountFrozen?: boolean }; preset?: never }
+);
+
 export const Presets = {
   SSS_1: {
     preset: Preset.SSS_1,
@@ -173,15 +184,20 @@ export class SolanaStablecoin {
 
   static async create(
     connection: Connection,
-    opts: {
-      preset: PresetConfig;
-      name: string;
-      symbol: string;
-      uri?: string;
-      decimals?: number;
-      authority: Keypair;
-    }
+    opts: CreateOpts
   ): Promise<SolanaStablecoin> {
+    let resolvedPreset: PresetConfig;
+    if ('extensions' in opts && opts.extensions) {
+      resolvedPreset = {
+        preset: opts.extensions.permanentDelegate ? Preset.SSS_2 : Preset.SSS_1,
+        enablePermanentDelegate: opts.extensions.permanentDelegate,
+        enableTransferHook: opts.extensions.transferHook,
+        defaultAccountFrozen: opts.extensions.defaultAccountFrozen ?? false,
+      };
+    } else {
+      resolvedPreset = opts.preset!;
+    }
+
     const wallet = new anchor.Wallet(opts.authority);
     const sdk = new SolanaStablecoin(connection, wallet);
     const mintKeypair = Keypair.generate();
@@ -193,13 +209,13 @@ export class SolanaStablecoin {
       masterMinter: opts.authority.publicKey,
       blacklister: opts.authority.publicKey,
       pauser: opts.authority.publicKey,
-      enablePermanentDelegate: opts.preset.enablePermanentDelegate,
-      enableTransferHook: opts.preset.enableTransferHook,
-      defaultAccountFrozen: opts.preset.defaultAccountFrozen,
+      enablePermanentDelegate: resolvedPreset.enablePermanentDelegate,
+      enableTransferHook: resolvedPreset.enableTransferHook,
+      defaultAccountFrozen: resolvedPreset.defaultAccountFrozen,
     };
     await sdk.create(opts.decimals ?? 6, args, mintKeypair);
     sdk._mint = mintKeypair.publicKey;
-    if (opts.preset.enablePermanentDelegate) {
+    if (resolvedPreset.enablePermanentDelegate) {
       sdk.compliance = new ComplianceModule(connection, wallet, mintKeypair.publicKey);
     }
     return sdk;
@@ -292,11 +308,20 @@ export class SolanaStablecoin {
   }
 
   async mint(
-    mint: PublicKey,
-    opts: { recipient: PublicKey; amount: bigint; minter?: PublicKey }
+    mintOrOpts: PublicKey | { recipient: PublicKey; amount: bigint; minter?: PublicKey },
+    opts?: { recipient: PublicKey; amount: bigint; minter?: PublicKey }
   ): Promise<string> {
-    const recipient = opts.recipient;
-    const amount = opts.amount;
+    // Determine if first arg is PublicKey or opts object
+    const firstArgIsPublicKey = mintOrOpts instanceof PublicKey;
+    const resolvedMint: PublicKey = (() => {
+      if (firstArgIsPublicKey) return mintOrOpts as PublicKey;
+      if (this._mint) return this._mint;
+      throw new Error('No mint address: use SolanaStablecoin.create() factory or pass mint explicitly as first argument');
+    })();
+    const options = firstArgIsPublicKey ? opts! : mintOrOpts as { recipient: PublicKey; amount: bigint; minter?: PublicKey };
+    const recipient = options.recipient;
+    const amount = options.amount;
+    const mint = resolvedMint;
     const configPDA = SolanaStablecoin.getConfigPDA(mint);
     const recipientATA = await getAssociatedTokenAddress(
       mint,
@@ -346,7 +371,14 @@ export class SolanaStablecoin {
     return await this.connection.sendRawTransaction(signedTx.serialize());
   }
 
-  async burn(mint: PublicKey, amount: number): Promise<string> {
+  async burn(mintOrAmount: PublicKey | number, amount?: number): Promise<string> {
+    const resolvedMint: PublicKey = (() => {
+      if (mintOrAmount instanceof PublicKey) return mintOrAmount;
+      if (this._mint) return this._mint;
+      throw new Error('No mint address: use SolanaStablecoin.create() factory or pass mint explicitly as first argument');
+    })();
+    const actualAmount = mintOrAmount instanceof PublicKey ? amount! : mintOrAmount;
+    const mint = resolvedMint;
     const configPDA = SolanaStablecoin.getConfigPDA(mint);
     const sourceATA = await getAssociatedTokenAddress(
       mint,
@@ -356,7 +388,7 @@ export class SolanaStablecoin {
     );
 
     const burnIx = await this.program.methods
-      .burn(new anchor.BN(amount))
+      .burn(new anchor.BN(actualAmount))
       .accounts({
         config: configPDA,
         mint: mint,
@@ -376,11 +408,18 @@ export class SolanaStablecoin {
     return await this.connection.sendRawTransaction(signedTx.serialize());
   }
 
-  async freeze(mint: PublicKey, address: PublicKey): Promise<string> {
+  async freeze(mintOrAddress: PublicKey | { address: PublicKey }, address?: PublicKey): Promise<string> {
+    const resolvedMint: PublicKey = (() => {
+      if (mintOrAddress instanceof PublicKey) return mintOrAddress;
+      if (this._mint) return this._mint;
+      throw new Error('No mint address: use SolanaStablecoin.create() factory or pass mint explicitly as first argument');
+    })();
+    const targetAddress = mintOrAddress instanceof PublicKey ? address! : (mintOrAddress as { address: PublicKey }).address;
+    const mint = resolvedMint;
     const configPDA = SolanaStablecoin.getConfigPDA(mint);
     const tokenAccount = await getAssociatedTokenAddress(
       mint,
-      address,
+      targetAddress,
       false,
       TOKEN_PROGRAM_ID
     );
@@ -406,11 +445,18 @@ export class SolanaStablecoin {
     return await this.connection.sendRawTransaction(signedTx.serialize());
   }
 
-  async thaw(mint: PublicKey, address: PublicKey): Promise<string> {
+  async thaw(mintOrAddress: PublicKey | { address: PublicKey }, address?: PublicKey): Promise<string> {
+    const resolvedMint: PublicKey = (() => {
+      if (mintOrAddress instanceof PublicKey) return mintOrAddress;
+      if (this._mint) return this._mint;
+      throw new Error('No mint address: use SolanaStablecoin.create() factory or pass mint explicitly as first argument');
+    })();
+    const targetAddress = mintOrAddress instanceof PublicKey ? address! : (mintOrAddress as { address: PublicKey }).address;
+    const mint = resolvedMint;
     const configPDA = SolanaStablecoin.getConfigPDA(mint);
     const tokenAccount = await getAssociatedTokenAddress(
       mint,
-      address,
+      targetAddress,
       false,
       TOKEN_PROGRAM_ID
     );
@@ -436,14 +482,19 @@ export class SolanaStablecoin {
     return await this.connection.sendRawTransaction(signedTx.serialize());
   }
 
-  async pause(mint: PublicKey): Promise<string> {
-    const configPDA = SolanaStablecoin.getConfigPDA(mint);
+  async pause(mint?: PublicKey): Promise<string> {
+    const resolvedMint: PublicKey = (() => {
+      if (mint instanceof PublicKey) return mint;
+      if (this._mint) return this._mint;
+      throw new Error('No mint address: use SolanaStablecoin.create() factory or pass mint explicitly as first argument');
+    })();
+    const configPDA = SolanaStablecoin.getConfigPDA(resolvedMint);
 
     const pauseIx = await this.program.methods
       .pause()
       .accounts({
         config: configPDA,
-        mint: mint,
+        mint: resolvedMint,
         signer: this.wallet.publicKey,
       })
       .instruction();
@@ -458,14 +509,19 @@ export class SolanaStablecoin {
     return await this.connection.sendRawTransaction(signedTx.serialize());
   }
 
-  async unpause(mint: PublicKey): Promise<string> {
-    const configPDA = SolanaStablecoin.getConfigPDA(mint);
+  async unpause(mint?: PublicKey): Promise<string> {
+    const resolvedMint: PublicKey = (() => {
+      if (mint instanceof PublicKey) return mint;
+      if (this._mint) return this._mint;
+      throw new Error('No mint address: use SolanaStablecoin.create() factory or pass mint explicitly as first argument');
+    })();
+    const configPDA = SolanaStablecoin.getConfigPDA(resolvedMint);
 
     const unpauseIx = await this.program.methods
       .unpause()
       .accounts({
         config: configPDA,
-        mint: mint,
+        mint: resolvedMint,
         signer: this.wallet.publicKey,
       })
       .instruction();
@@ -480,13 +536,23 @@ export class SolanaStablecoin {
     return await this.connection.sendRawTransaction(signedTx.serialize());
   }
 
-  async getTotalSupply(mint: PublicKey): Promise<number> {
-    const mintInfo = await this.connection.getTokenSupply(mint);
+  async getTotalSupply(mint?: PublicKey): Promise<number> {
+    const resolvedMint: PublicKey = (() => {
+      if (mint instanceof PublicKey) return mint;
+      if (this._mint) return this._mint;
+      throw new Error('No mint address: use SolanaStablecoin.create() factory or pass mint explicitly as first argument');
+    })();
+    const mintInfo = await this.connection.getTokenSupply(resolvedMint);
     return Number(mintInfo.value.amount);
   }
 
-  async getConfig(mint: PublicKey): Promise<StablecoinConfig | null> {
-    const configPDA = SolanaStablecoin.getConfigPDA(mint);
+  async getConfig(mint?: PublicKey): Promise<StablecoinConfig | null> {
+    const resolvedMint: PublicKey = (() => {
+      if (mint instanceof PublicKey) return mint;
+      if (this._mint) return this._mint;
+      throw new Error('No mint address: use SolanaStablecoin.create() factory or pass mint explicitly as first argument');
+    })();
+    const configPDA = SolanaStablecoin.getConfigPDA(resolvedMint);
     try {
       const config = await (this.program.account as any).stablecoinConfig.fetch(
         configPDA
@@ -528,15 +594,35 @@ export class SolanaStablecoin {
   }
 
   async setMinterAllowance(
-    mint: PublicKey,
-    minter: PublicKey,
-    allowance: number
+    mintOrMinter: PublicKey | { minter: PublicKey; allowance: number },
+    minterOrAllowance?: PublicKey | number,
+    allowance?: number
   ): Promise<string> {
+    const resolvedMint: PublicKey = (() => {
+      if (mintOrMinter instanceof PublicKey) return mintOrMinter;
+      if (this._mint) return this._mint;
+      throw new Error('No mint address: use SolanaStablecoin.create() factory or pass mint explicitly as first argument');
+    })();
+    
+    let minter: PublicKey;
+    let actualAllowance: number;
+    
+    if (mintOrMinter instanceof PublicKey) {
+      // Old signature: mint, minter, allowance
+      minter = minterOrAllowance as PublicKey;
+      actualAllowance = allowance!;
+    } else {
+      // New signature: { minter, allowance }
+      minter = (mintOrMinter as { minter: PublicKey }).minter;
+      actualAllowance = (mintOrMinter as { allowance: number }).allowance;
+    }
+    
+    const mint = resolvedMint;
     const configPDA = SolanaStablecoin.getConfigPDA(mint);
     const minterPDA = SolanaStablecoin.getMinterPDA(mint, minter);
 
     const setAllowanceIx = await this.program.methods
-      .setMinterAllowance(new anchor.BN(allowance))
+      .setMinterAllowance(new anchor.BN(actualAllowance))
       .accounts({
         config: configPDA,
         mint: mint,

@@ -1,328 +1,242 @@
 # SDK Reference
 
-The SSS TypeScript SDK provides a programmatic interface for interacting with SSS stablecoins.
+`@stbr/sss-token` is the TypeScript SDK for the Solana Stablecoin Standard. It wraps the on-chain Anchor program and provides a clean, typed API for deploying and operating SSS-1 and SSS-2 stablecoins.
 
 ## Installation
-
 ```bash
 npm install @stbr/sss-token
 ```
 
+Peer dependencies:
+```bash
+npm install @solana/web3.js @coral-xyz/anchor
+```
+
 ## Quick Start
-
 ```typescript
-import { SolanaStablecoin, ComplianceModule, Presets } from "@stbr/sss-token";
-import { Connection } from "@solana/web3.js";
+import { SolanaStablecoin, Presets } from "@stbr/sss-token";
+import { Connection, Keypair } from "@solana/web3.js";
 
-const connection = new Connection("https://api.devnet.solana.com");
-const sdk = new SolanaStablecoin(connection, wallet);
+const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 
-// Initialize SSS-2 stablecoin
-const mint = await sdk.create(6, {
+// Deploy a new SSS-2 compliant stablecoin in one call
+const stable = await SolanaStablecoin.create(connection, {
+  preset: Presets.SSS_2,
   name: "My Stablecoin",
-  symbol: "MSTB",
-  uri: "https://...",
-  masterAuthority: authority,
-  masterMinter: authority,
-  blacklister: authority,
-  pauser: authority,
-  ...Presets.SSS_2,
+  symbol: "MYUSD",
+  decimals: 6,
+  authority: adminKeypair,
+});
+
+// Mint 1 MYUSD (1_000_000 base units at 6 decimals)
+await stable.mint({ recipient: recipientPublicKey, amount: 1_000_000n, minter: adminKeypair.publicKey });
+
+// SSS-2: add address to blacklist
+await stable.compliance.blacklistAdd(suspiciousAddress, "OFAC match");
+
+// SSS-2: seize tokens from frozen account
+await stable.compliance.seize(frozenAccount, treasuryAccount, 1_000_000n);
+
+// Query total supply
+const supply = await stable.getTotalSupply();
+console.log("Total supply:", supply);
+```
+
+## Presets
+
+| Preset | Permanent Delegate | Transfer Hook | Blacklist | Seizure | Use Case |
+|--------|-------------------|---------------|-----------|---------|----------|
+| `Presets.SSS_1` | ❌ | ❌ | ❌ | ❌ | Internal tokens, DAO treasuries |
+| `Presets.SSS_2` | ✅ | ✅ | ✅ | ✅ | Regulated stablecoins (USDC-class) |
+```typescript
+// SSS-1: minimal
+const stable1 = await SolanaStablecoin.create(connection, {
+  preset: Presets.SSS_1,
+  name: "Simple Token",
+  symbol: "SMPL",
+  decimals: 6,
+  authority: adminKeypair,
+});
+
+// SSS-2: GENIUS Act compliant
+const stable2 = await SolanaStablecoin.create(connection, {
+  preset: Presets.SSS_2,
+  name: "USD Coin",
+  symbol: "USDC",
+  decimals: 6,
+  authority: adminKeypair,
 });
 ```
 
-## Configuration
+## Custom Configuration
 
-### Presets
-
+Pass an `extensions` object instead of a preset for fine-grained control:
 ```typescript
-import { Presets } from "@stbr/sss-token";
-
-// SSS-1: Minimal
-const sss1Config = Presets.SSS_1;
-
-// SSS-2: Compliant
-const sss2Config = Presets.SSS_2;
+const custom = await SolanaStablecoin.create(connection, {
+  name: "Custom Stable",
+  symbol: "CUSD",
+  extensions: {
+    permanentDelegate: true,
+    transferHook: false,
+    defaultAccountFrozen: false,
+  },
+  authority: adminKeypair,
+});
 ```
 
-### Custom Configuration
-
+Or load from a TOML config file:
 ```typescript
-const customConfig = {
-  preset: Preset.SSS_2,
-  enablePermanentDelegate: true,
-  enableTransferHook: true,
-  defaultAccountFrozen: false,
-};
+const { sdk, mint } = await SolanaStablecoin.fromConfig(
+  "./stablecoin.toml",
+  connection,
+  adminKeypair
+);
+```
+
+Example `stablecoin.toml`:
+```toml
+preset = "sss-2"
+name = "My Stablecoin"
+symbol = "MYUSD"
+uri = "https://example.com/token.json"
+decimals = 6
 ```
 
 ## Core API
 
-### SolanaStablecoin
+### `SolanaStablecoin.create(connection, opts)` → `Promise<SolanaStablecoin>`
 
-#### constructor(connection, wallet, programId?)
+Static factory. Deploys a new mint and config PDA on-chain. Sets `instance._mint` automatically so subsequent instance method calls do not need an explicit mint argument.
 
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `preset` | `PresetConfig` | One of preset or extensions | Use `Presets.SSS_1` or `Presets.SSS_2` |
+| `extensions` | object | One of preset or extensions | `{ permanentDelegate, transferHook, defaultAccountFrozen? }` |
+| `name` | string | ✅ | Token name (max 32 chars) |
+| `symbol` | string | ✅ | Token symbol (max 10 chars) |
+| `uri` | string | — | Token metadata URI (max 200 chars) |
+| `decimals` | number | — | Default: 6 |
+| `authority` | Keypair | ✅ | Master authority keypair |
+
+### `stable.mint(opts)` → `Promise<string>`
+
+Mints tokens to a recipient. Returns transaction signature.
 ```typescript
-const sdk = new SolanaStablecoin(
-  connection,           // Solana connection
-  wallet,               // Anchor wallet
-  programId?            // Optional: defaults to STABLECOIN_PROGRAM_ID
-);
-```
-
-#### create(decimals, args, mintKeypair?)
-
-Creates and initializes a new stablecoin.
-
-```typescript
-const mint = await sdk.create(6, {
-  name: "USD Coin",
-  symbol: "USDC",
-  uri: "https://...",
-  masterAuthority: authority,
-  masterMinter: authority,
-  blacklister: blacklister,
-  pauser: pauser,
-  enablePermanentDelegate: true,
-  enableTransferHook: true,
-  defaultAccountFrozen: false,
+const tx = await stable.mint({
+  recipient: recipientPublicKey,
+  amount: 1_000_000n,           // bigint, base units
+  minter: minterPublicKey,      // optional, defaults to authority
 });
 ```
 
-**Returns**: `Promise<PublicKey>` - Mint address
-
-#### mint(mint, recipient, amount)
-
-Mints tokens to a recipient.
-
+Also accepts explicit mint (backward compat):
 ```typescript
-await sdk.mint(
-  mintAddress,      // Mint PublicKey
-  recipientAddress, // Recipient PublicKey
-  1000000          // Amount (in smallest units)
+const tx = await sdk.mint(mintPubkey, { recipient, amount: 1_000_000n });
+```
+
+### `stable.burn(amount)` → `Promise<string>`
+
+Burns tokens from the authority's token account.
+```typescript
+const tx = await stable.burn(500_000n);
+```
+
+### `stable.freeze(address)` → `Promise<string>`
+
+Freezes a token account. Requires `blacklister` authority.
+```typescript
+const tx = await stable.freeze(suspiciousAccountPublicKey);
+```
+
+### `stable.thaw(address)` → `Promise<string>`
+
+Thaws a previously frozen token account.
+```typescript
+const tx = await stable.thaw(accountPublicKey);
+```
+
+### `stable.pause()` → `Promise<string>`
+
+Pauses all minting and transfers. Requires `pauser` authority.
+
+### `stable.unpause()` → `Promise<string>`
+
+Resumes operations after a pause.
+
+### `stable.getTotalSupply()` → `Promise<number>`
+
+Returns the current total supply from on-chain mint info.
+
+### `stable.getConfig()` → `Promise<StablecoinConfig | null>`
+
+Returns the full on-chain config account data including all roles, flags, and supply.
+
+### `stable.setMinterAllowance(mint, minter, allowance)` → `Promise<string>`
+
+Sets per-minter quota. Requires `master_minter` authority.
+```typescript
+await stable.setMinterAllowance(mintPubkey, minterPublicKey, 10_000_000);
+```
+
+## Compliance API (SSS-2)
+
+Available via `stable.compliance` after `SolanaStablecoin.create()` with `Presets.SSS_2` or `extensions: { permanentDelegate: true }`.
+
+### `stable.compliance.blacklistAdd(address, reason)` → `Promise<string>`
+
+Creates a `BlacklistEntry` PDA for the address. The transfer hook rejects all transfers involving this address automatically.
+```typescript
+const tx = await stable.compliance.blacklistAdd(
+  suspiciousAddress,
+  "OFAC SDN match — 2025-01-15"
 );
 ```
 
-#### burn(mint, amount)
+### `stable.compliance.blacklistRemove(address)` → `Promise<string>`
 
-Burns tokens from the caller's account.
+Removes address from blacklist. Closes the PDA and refunds rent.
 
+### `stable.compliance.seize(sourceAccount, destinationAccount, amount)` → `Promise<string>`
+
+Transfers tokens from a frozen account to treasury using the permanent delegate. Account must be frozen first.
 ```typescript
-await sdk.burn(mintAddress, 500000);
+// 1. Freeze the account
+await stable.freeze(frozenAccount);
+// 2. Seize to treasury
+const tx = await stable.compliance.seize(frozenAccount, treasuryAccount, 1_000_000n);
 ```
 
-#### freeze(mint, address)
+### `stable.compliance.getBlacklistStatus(address)` → `Promise<boolean>`
 
-Freezes a token account.
+Returns `true` if address is currently blacklisted.
 
-```typescript
-await sdk.freeze(mintAddress, accountToFreeze);
-```
-
-#### thaw(mint, address)
-
-Unfreezes a token account.
-
-```typescript
-await sdk.thaw(mintAddress, accountToThaw);
-```
-
-#### pause(mint)
-
-Pauses all minting and transfers.
-
-```typescript
-await sdk.pause(mintAddress);
-```
-
-#### unpause(mint)
-
-Resumes operations.
-
-```typescript
-await sdk.unpause(mintAddress);
-```
-
-#### getTotalSupply(mint)
-
-Gets the total token supply.
-
-```typescript
-const supply = await sdk.getTotalSupply(mintAddress);
-```
-
-#### getConfig(mint)
-
-Gets the stablecoin configuration.
-
-```typescript
-const config = await sdk.getConfig(mintAddress);
-```
-
-#### updateRoles(mint, args)
-
-Updates authority roles.
-
-```typescript
-await sdk.updateRoles(mintAddress, {
-  newMasterAuthority: newAuthority,
-  newPauser: newPauser,
-});
-```
-
-#### setMinterAllowance(mint, minter, allowance)
-
-Sets minting allowance for an address.
-
-```typescript
-await sdk.setMinterAllowance(
-  mintAddress,
-  minterAddress,
-  10000000 // allowance amount
-);
-```
-
-### ComplianceModule
-
-#### constructor(connection, wallet, mint, programId?)
-
-```typescript
-const compliance = new ComplianceModule(
-  connection,
-  wallet,
-  mintAddress
-);
-```
-
-#### blacklistAdd(address, reason)
-
-Adds an address to the blacklist.
-
-```typescript
-await compliance.blacklistAdd(
-  addressToBlacklist,
-  "KYC failure"
-);
-```
-
-#### blacklistRemove(address)
-
-Removes an address from blacklist.
-
-```typescript
-await compliance.blacklistRemove(addressToRemove);
-```
-
-#### seize(frozenAccount, treasury, amount)
-
-Seizes tokens from a frozen account.
-
-```typescript
-await compliance.seize(
-  frozenAccountAddress,
-  treasuryAddress,
-  amountToSeize
-);
-```
-
-#### getBlacklistStatus(address)
-
-Checks if an address is blacklisted.
-
-```typescript
-const isBlacklisted = await compliance.getBlacklistStatus(address);
-```
-
-## Static Methods
-
-### getConfigPDA(mint)
-
-Derives the config PDA address.
-
-```typescript
-const configPDA = SolanaStablecoin.getConfigPDA(mintAddress);
-```
-
-### getMinterPDA(mint, minter)
-
-Derives the minter PDA address.
-
-```typescript
-const minterPDA = SolanaStablecoin.getMinterPDA(mintAddress, minterAddress);
-```
-
-### getBlacklistPDA(mint, address)
-
-Derives the blacklist PDA address.
-
-```typescript
-const blacklistPDA = SolanaStablecoin.getBlacklistPDA(mintAddress, address);
+## TOML Config Reference
+```toml
+# stablecoin.toml
+preset = "sss-2"
+name = "My Stablecoin"
+symbol = "MYUSD"
+uri = ""
+decimals = 6
 ```
 
 ## Error Handling
 
-```typescript
-import { StablecoinError } from "@stbr/sss-token";
-
-try {
-  await sdk.mint(mint, recipient, amount);
-} catch (error) {
-  if (error.message.includes("Unauthorized")) {
-    // Handle authority error
-  } else if (error.message.includes("InvalidAmount")) {
-    // Handle invalid amount
-  }
-}
-```
-
-## Examples
-
-### Full SSS-2 Workflow
-
-```typescript
-const sdk = new SolanaStablecoin(connection, wallet);
-const compliance = new ComplianceModule(connection, wallet, mint);
-
-// Initialize
-const mint = await sdk.create(6, { ...SSS_2_Config });
-
-// Mint to user
-await sdk.mint(mint, userAccount, 1000000);
-
-// User transfers - automatically checked against blacklist
-
-// Compliance: freeze suspicious account
-await sdk.freeze(mint, suspiciousAccount);
-
-// Seize to treasury
-await compliance.seize(suspiciousAccount, treasury, 500000);
-
-// Check blacklist
-const status = await compliance.getBlacklistStatus(suspiciousAccount);
-console.log(`Blacklisted: ${status}`);
-```
-
-### Using Config Files
-
-```typescript
-import { parseTOMLConfig, buildInitializeArgs } from "@stbr/sss-token";
-
-const configData = fs.readFileSync("stablecoin.toml", "utf-8");
-const config = parseTOMLConfig(configData);
-
-const args = buildInitializeArgs(config, authority);
-const mint = await sdk.create(6, args);
-```
+| Error | Meaning | Fix |
+|-------|---------|-----|
+| `NotCompliantStablecoin` | Called SSS-2 instruction on SSS-1 config | Initialize with `Presets.SSS_2` |
+| `Unauthorized` | Caller is not the required authority | Use the correct authority keypair |
+| `AccountNotFrozen` | Seize attempted without freeze | Call `stable.freeze(address)` first |
+| `AllowanceExceeded` | Minter quota exceeded | Call `setMinterAllowance` to increase |
+| `OverflowError` | u64 arithmetic overflow | Amount too large for u64 |
+| `InvalidAmount` | Amount is 0 | Pass amount > 0 |
+| `No mint address` | Instance method called without mint set | Use `SolanaStablecoin.create()` factory |
 
 ## Constants
-
 ```typescript
-import { 
-  STABLECOIN_PROGRAM_ID,
-  TRANSFER_HOOK_PROGRAM_ID,
-  TOKEN_PROGRAM_ID 
+import {
+  STABLECOIN_PROGRAM_ID,  // 2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9
+  TRANSFER_HOOK_PROGRAM_ID, // PQgUt1swYzA9RSAG7gpyTQpk9TtbVReX11ytkeYTJBo
+  TOKEN_PROGRAM_ID,         // TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
 } from "@stbr/sss-token";
-
-// Stablecoin: 2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9
-// Transfer Hook: PQgUt1swYzA9RSAG7gpyTQpk9TtbVReX11ytkeYTJBo
-// Token-2022: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
 ```

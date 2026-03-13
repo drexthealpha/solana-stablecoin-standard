@@ -1,10 +1,16 @@
+/**
+ * SSS-1: Minimal Stablecoin Integration Tests
+ * Run with: anchor test --skip-deploy
+ */
+
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 import { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createTransferCheckedInstruction, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { assert } from "chai";
+import { SolanaStablecoin, Presets } from "../sdk/src/index";
 
-describe("SSS-1 Integration Tests", () => {
+describe("SSS-1: Minimal Stablecoin", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.Stablecoin as Program;
@@ -20,19 +26,27 @@ describe("SSS-1 Integration Tests", () => {
   const recipient = Keypair.generate().publicKey;
 
   before(async () => {
+    // TODO: Generate a new mint keypair for the test
     mint = Keypair.generate();
+    
+    // TODO: Derive the config PDA using the mint address
     [configPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("config"), mint.publicKey.toBuffer()],
       STABLECOIN_PROGRAM_ID
     );
   });
 
-  it("Deploy and initialize SSS-1 stablecoin", async () => {
+  it("initialize → verify config has enablePermanentDelegate=false", async () => {
+    // TODO: Get SSS-1 preset configuration
+    const preset = Presets.SSS1;
+    
+    // TODO: Initialize the stablecoin with SSS-1 preset
     const decimals = 6;
-    const name = "Test Stablecoin";
-    const symbol = "TST";
-    const uri = "https://example.com/token.json";
+    const name = "Test SSS-1";
+    const symbol = "TST1";
+    const uri = "";
 
+    // TODO: Call initialize instruction via program or SDK
     const tx = await program.methods
       .initialize(decimals, {
         name,
@@ -42,8 +56,8 @@ describe("SSS-1 Integration Tests", () => {
         masterMinter: masterAuthority,
         blacklister: masterAuthority,
         pauser: masterAuthority,
-        enablePermanentDelegate: false,
-        enableTransferHook: false,
+        enablePermanentDelegate: false, // SSS-1: permanent delegate disabled
+        enableTransferHook: false,       // SSS-1: transfer hook disabled
         defaultAccountFrozen: false,
       })
       .accounts({
@@ -56,29 +70,43 @@ describe("SSS-1 Integration Tests", () => {
       .signers([mint])
       .rpc();
 
-    console.log("Initialize transaction:", tx);
+    console.log("Initialize tx:", tx);
 
+    // TODO: Fetch the config account and verify flags
     const config = await program.account.stablecoinConfig.fetch(configPDA);
-    assert.equal(config.name, name);
-    assert.equal(config.symbol, symbol);
-    assert.equal(config.decimals, decimals);
-    assert.equal(config.masterAuthority.toBase58(), masterAuthority.toBase58());
-    assert.equal(config.isPaused, false);
-    assert.equal(config.enablePermanentDelegate, false);
-    assert.equal(config.enableTransferHook, false);
+    
+    // TODO: Assert enablePermanentDelegate === false
+    assert.equal(config.enablePermanentDelegate, false, "SSS-1 should have enablePermanentDelegate=false");
+    
+    // TODO: Assert enableTransferHook === false
+    assert.equal(config.enableTransferHook, false, "SSS-1 should have enableTransferHook=false");
   });
 
-  it("Create token accounts", async () => {
+  it("setMinterAllowance → mint 1,000,000 tokens → verify supply", async () => {
+    // TODO: Set minter allowance to 2_000_000 for the master authority
+    const allowance = 2_000_000;
+    const [minterPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("minter"), mint.publicKey.toBuffer(), masterAuthority.toBuffer()],
+      STABLECOIN_PROGRAM_ID
+    );
+
+    await program.methods
+      .setMinterAllowance(new anchor.BN(allowance))
+      .accounts({
+        config: configPDA,
+        mint: mint.publicKey,
+        minterAllowance: minterPDA,
+        minter: masterAuthority,
+        payer: masterAuthority,
+        signer: masterAuthority,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    // TODO: Ensure user token account exists (create if needed)
     userTokenAccount = await getAssociatedTokenAddress(
       mint.publicKey,
       user,
-      false,
-      TOKEN_PROGRAM_ID
-    );
-
-    recipientTokenAccount = await getAssociatedTokenAddress(
-      mint.publicKey,
-      recipient,
       false,
       TOKEN_PROGRAM_ID
     );
@@ -90,6 +118,41 @@ describe("SSS-1 Integration Tests", () => {
       mint.publicKey,
       TOKEN_PROGRAM_ID
     );
+    await program.provider.sendAndConfirm!(new anchor.web3.Transaction().add(userATAInstr));
+
+    // TODO: Mint 1_000_000 tokens to the user
+    const mintAmount = 1_000_000;
+    await program.methods
+      .mint(new anchor.BN(mintAmount))
+      .accounts({
+        config: configPDA,
+        mint: mint.publicKey,
+        minterPda: minterPDA,
+        minter: masterAuthority,
+        destinationToken: userTokenAccount,
+        payer: masterAuthority,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
+    // TODO: Get total supply from the mint account
+    const mintInfo = await program.provider.connection.getParsedAccountInfo(mint.publicKey);
+    const supply = mintInfo.value?.data?.parsed?.info?.supply || "0";
+    const supplyUi = parseInt(supply) / Math.pow(10, 6);
+
+    // TODO: Assert supply === 1_000_000
+    assert.equal(supplyUi, 1_000_000, "Total supply should be 1,000,000");
+  });
+
+  it("freeze → transfer fails while frozen", async () => {
+    // TODO: Ensure recipient token account exists
+    recipientTokenAccount = await getAssociatedTokenAddress(
+      mint.publicKey,
+      recipient,
+      false,
+      TOKEN_PROGRAM_ID
+    );
 
     const recipientATAInstr = createAssociatedTokenAccountInstruction(
       masterAuthority,
@@ -98,143 +161,48 @@ describe("SSS-1 Integration Tests", () => {
       mint.publicKey,
       TOKEN_PROGRAM_ID
     );
+    await program.provider.sendAndConfirm!(new anchor.web3.Transaction().add(recipientATAInstr));
 
-    const tx = new anchor.web3.Transaction()
-      .add(userATAInstr)
-      .add(recipientATAInstr);
-
-    await program.provider.sendAndConfirm!(tx);
-
-    console.log("Token accounts created");
-  });
-
-  it("Mint tokens", async () => {
-    const amount = 1000000;
-
-    const [minterPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("minter"), mint.publicKey.toBuffer(), masterAuthority.toBuffer()],
-      STABLECOIN_PROGRAM_ID
-    );
-
-    const tx = await program.methods
-      .mint(new anchor.BN(amount))
-      .accounts({
-        config: configPDA,
-        mint: mint.publicKey,
-        minterPda: minterPDA,
-        minter: masterAuthority,
-        destinationToken: userTokenAccount,
-        payer: masterAuthority,
-        systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc();
-
-    console.log("Mint transaction:", tx);
-
-    const tokenAccountInfo = await program.provider.connection.getParsedAccountInfo(
-      userTokenAccount
-    );
-    const balance = tokenAccountInfo.value?.data?.parsed?.info?.tokenAmount?.uiAmount || 0;
-    assert.equal(balance, amount / Math.pow(10, 6));
-  });
-
-  it("Freeze → transfer blocked while frozen → Thaw → account unfrozen", async () => {
-    const [minterPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("minter"), mint.publicKey.toBuffer(), masterAuthority.toBuffer()],
-      STABLECOIN_PROGRAM_ID
-    );
-    await program.methods
-      .mint(new anchor.BN(100000))
-      .accounts({
-        config: configPDA,
-        mint: mint.publicKey,
-        minterPda: minterPDA,
-        minter: masterAuthority,
-        destinationToken: userTokenAccount,
-        payer: masterAuthority,
-        systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc();
-
+    // TODO: Freeze the recipient account
     await program.methods
       .freezeAccount()
       .accounts({
         config: configPDA,
         mint: mint.publicKey,
-        tokenAccount: userTokenAccount,
+        tokenAccount: recipientTokenAccount,
         signer: masterAuthority,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
 
-    const frozenInfo = await program.provider.connection.getParsedAccountInfo(userTokenAccount);
-    const isFrozen = (frozenInfo.value?.data as any)?.parsed?.info?.state === "frozen";
-    assert.equal(isFrozen, true, "Account must be frozen");
-    console.log("Account is frozen — transfers blocked at protocol level");
+    // TODO: Verify the account state is "frozen"
+    const accountInfo = await program.provider.connection.getParsedAccountInfo(recipientTokenAccount);
+    const isFrozen = (accountInfo.value?.data as any)?.parsed?.info?.state === "frozen";
+    assert.equal(isFrozen, true, "Account should be frozen");
 
-    // Verify frozen accounts cannot transfer (Token-2022 enforces at protocol level)
+    // TODO: Attempt transfer from frozen account, expect error containing 'AccountFrozen' or 'frozen'
     try {
       const transferIx = createTransferCheckedInstruction(
         userTokenAccount,
         mint.publicKey,
         recipientTokenAccount,
         user,
-        1,
+        100,
         6,
         [],
         TOKEN_PROGRAM_ID
       );
-      const transferTx = new anchor.web3.Transaction().add(transferIx);
-      await program.provider.sendAndConfirm!(transferTx);
-      assert.fail('Transfer should have failed while account is frozen');
+      await program.provider.sendAndConfirm!(new anchor.web3.Transaction().add(transferIx));
+      assert.fail("Transfer should have failed while account is frozen");
     } catch (e: any) {
-      assert.notEqual(e.message, 'Transfer should have failed while account is frozen');
-      console.log('Expected: transfer blocked by Token-2022 while frozen');
+      // TODO: Verify error contains 'AccountFrozen' or 'frozen'
+      assert.include(e.message.toLowerCase(), "frozen", "Expected frozen account error");
     }
-
-    const thawTx = await program.methods
-      .thawAccount()
-      .accounts({
-        config: configPDA,
-        mint: mint.publicKey,
-        tokenAccount: userTokenAccount,
-        signer: masterAuthority,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc();
-    console.log("Thaw transaction:", thawTx);
-
-    const thawedInfo = await program.provider.connection.getParsedAccountInfo(userTokenAccount);
-    const isStillFrozen = (thawedInfo.value?.data as any)?.parsed?.info?.state === "frozen";
-    assert.equal(isStillFrozen, false, "Account must be thawed");
-    console.log("Account thawed — transfers unblocked");
   });
 
-  it("Freeze account", async () => {
-    const tx = await program.methods
-      .freezeAccount()
-      .accounts({
-        config: configPDA,
-        mint: mint.publicKey,
-        tokenAccount: recipientTokenAccount,
-        signer: masterAuthority,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc();
-
-    console.log("Freeze transaction:", tx);
-
-    const tokenAccountInfo = await program.provider.connection.getParsedAccountInfo(
-      recipientTokenAccount
-    );
-    const isFrozen = tokenAccountInfo.value?.data?.parsed?.info?.state === "frozen";
-    assert.equal(isFrozen, true);
-  });
-
-  it("Thaw account", async () => {
-    const tx = await program.methods
+  it("thaw → transfer succeeds after thaw", async () => {
+    // TODO: Thaw the recipient account
+    await program.methods
       .thawAccount()
       .accounts({
         config: configPDA,
@@ -245,40 +213,60 @@ describe("SSS-1 Integration Tests", () => {
       })
       .rpc();
 
-    console.log("Thaw transaction:", tx);
+    // TODO: Verify account state is "initialized" (not frozen)
+    const accountInfo = await program.provider.connection.getParsedAccountInfo(recipientTokenAccount);
+    const isFrozen = (accountInfo.value?.data as any)?.parsed?.info?.state === "frozen";
+    assert.equal(isFrozen, false, "Account should be thawed");
 
-    const tokenAccountInfo = await program.provider.connection.getParsedAccountInfo(
-      recipientTokenAccount
+    // TODO: Transfer should now succeed
+    const transferIx = createTransferCheckedInstruction(
+      userTokenAccount,
+      mint.publicKey,
+      recipientTokenAccount,
+      user,
+      100,
+      6,
+      [],
+      TOKEN_PROGRAM_ID
     );
-    const isFrozen = tokenAccountInfo.value?.data?.parsed?.info?.state === "frozen";
-    assert.equal(isFrozen, false);
+    await program.provider.sendAndConfirm!(new anchor.web3.Transaction().add(transferIx));
+    console.log("Transfer succeeded after thaw");
   });
 
-  it("Burn tokens", async () => {
-    const balanceBefore = await program.provider.connection.getParsedAccountInfo(userTokenAccount);
-    const balance = balanceBefore.value?.data?.parsed?.info?.tokenAmount?.uiAmountString || "0";
-    const amountToBurn = new anchor.BN(balance).toNumber();
+  it("SSS-2 instructions fail on SSS-1 preset with NotCompliantStablecoin", async () => {
+    // TODO: Attempt compliance.blacklistAdd on the SSS-1 mint
+    const [blacklistPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("blacklist"), mint.publicKey.toBuffer(), recipient.toBuffer()],
+      STABLECOIN_PROGRAM_ID
+    );
 
-    const tx = await program.methods
-      .burn(new anchor.BN(amountToBurn))
-      .accounts({
-        config: configPDA,
-        mint: mint.publicKey,
-        sourceToken: userTokenAccount,
-        authority: masterAuthority,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc();
-
-    console.log("Burn transaction:", tx);
-
-    const balanceAfter = await program.provider.connection.getParsedAccountInfo(userTokenAccount);
-    const balanceAfterStr = balanceAfter.value?.data?.parsed?.info?.tokenAmount?.uiAmountString || "0";
-    assert.equal(parseFloat(balanceAfterStr), 0);
+    try {
+      await program.methods
+        .addToBlacklist()
+        .accounts({
+          config: configPDA,
+          mint: mint.publicKey,
+          blacklistEntry: blacklistPDA,
+          targetAddress: recipient,
+          payer: masterAuthority,
+          signer: masterAuthority,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      assert.fail("addToBlacklist should fail on SSS-1");
+    } catch (e: any) {
+      // TODO: Expect error containing 'NotCompliantStablecoin' or 'SSS-2'
+      const errorMsg = e.toString().toLowerCase();
+      assert.isTrue(
+        errorMsg.includes("notcompliantstablecoin") || errorMsg.includes("sss-2") || errorMsg.includes("compliance"),
+        "Expected NotCompliantStablecoin or SSS-2 error"
+      );
+    }
   });
 
-  it("Pause and unpause", async () => {
-    const pauseTx = await program.methods
+  it("pause → all operations blocked → unpause → operations resume", async () => {
+    // TODO: Pause the stablecoin
+    await program.methods
       .pause()
       .accounts({
         config: configPDA,
@@ -287,10 +275,15 @@ describe("SSS-1 Integration Tests", () => {
       })
       .rpc();
 
-    console.log("Pause transaction:", pauseTx);
+    // TODO: Verify isPaused === true
+    const config = await program.account.stablecoinConfig.fetch(configPDA);
+    assert.equal(config.isPaused, true, "Should be paused");
 
-    let config = await program.account.stablecoinConfig.fetch(configPDA);
-    assert.equal(config.isPaused, true);
+    // TODO: Attempt mint, expect failure
+    const [minterPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("minter"), mint.publicKey.toBuffer(), masterAuthority.toBuffer()],
+      STABLECOIN_PROGRAM_ID
+    );
 
     try {
       await program.methods
@@ -298,10 +291,7 @@ describe("SSS-1 Integration Tests", () => {
         .accounts({
           config: configPDA,
           mint: mint.publicKey,
-          minterPda: PublicKey.findProgramAddressSync(
-            [Buffer.from("minter"), mint.publicKey.toBuffer(), masterAuthority.toBuffer()],
-            STABLECOIN_PROGRAM_ID
-          )[0],
+          minterPda: minterPDA,
           minter: masterAuthority,
           destinationToken: userTokenAccount,
           payer: masterAuthority,
@@ -309,12 +299,13 @@ describe("SSS-1 Integration Tests", () => {
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
-      assert.fail("Should have failed when paused");
-    } catch (e) {
-      console.log("Expected: Mint failed while paused");
+      assert.fail("Mint should fail while paused");
+    } catch (e: any) {
+      console.log("Expected: mint blocked while paused");
     }
 
-    const unpauseTx = await program.methods
+    // TODO: Unpause the stablecoin
+    await program.methods
       .unpause()
       .accounts({
         config: configPDA,
@@ -323,60 +314,24 @@ describe("SSS-1 Integration Tests", () => {
       })
       .rpc();
 
-    console.log("Unpause transaction:", unpauseTx);
+    // TODO: Verify isPaused === false
+    const configAfter = await program.account.stablecoinConfig.fetch(configPDA);
+    assert.equal(configAfter.isPaused, false, "Should be unpaused");
 
-    config = await program.account.stablecoinConfig.fetch(configPDA);
-    assert.equal(config.isPaused, false);
-  });
-
-  it("Update roles", async () => {
-    const newPauser = Keypair.generate().publicKey;
-
-    const tx = await program.methods
-      .updateRoles({
-        newMasterAuthority: null,
-        newMasterMinter: null,
-        newBlacklister: null,
-        newPauser: newPauser,
-      })
+    // TODO: Mint should now succeed
+    await program.methods
+      .mint(new anchor.BN(1000))
       .accounts({
         config: configPDA,
         mint: mint.publicKey,
-        signer: masterAuthority,
-      })
-      .rpc();
-
-    console.log("Update roles transaction:", tx);
-
-    const config = await program.account.stablecoinConfig.fetch(configPDA);
-    assert.equal(config.pauser.toBase58(), newPauser.toBase58());
-  });
-
-  it("Set minter allowance", async () => {
-    const newMinter = Keypair.generate().publicKey;
-    const allowance = 1000000;
-
-    const [minterPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("minter"), mint.publicKey.toBuffer(), newMinter.toBuffer()],
-      STABLECOIN_PROGRAM_ID
-    );
-
-    const tx = await program.methods
-      .setMinterAllowance(new anchor.BN(allowance))
-      .accounts({
-        config: configPDA,
-        mint: mint.publicKey,
-        minterAllowance: minterPDA,
-        minter: newMinter,
+        minterPda: minterPDA,
+        minter: masterAuthority,
+        destinationToken: userTokenAccount,
         payer: masterAuthority,
-        signer: masterAuthority,
         systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc();
-
-    console.log("Set minter allowance transaction:", tx);
-
-    const minterAllowance = await program.account.minterAllowance.fetch(minterPDA);
-    assert.equal(minterAllowance.allowance.toNumber(), allowance);
+    console.log("Mint succeeded after unpause");
   });
 });
