@@ -63,8 +63,8 @@ backend/compliance-service — port 3003
 [x] GAP 2 — SQLite checksum chain audit log (better-sqlite3, SHA-256 prev_hash chain, /audit-log/verify, /audit-log/export)
 [x] GAP 3 — Dockerfiles for all 4 backend services + TS/import fixes so docker compose up works
 [x] GAP 4 — npm publish @stbr/sss-token@0.1.0-beta (sdk/package.json ready — run: cd sdk && npm publish)
-[x] Tests passing (anchor test --skip-deploy)
-      → Note: Tests compile correctly. anchor test --skip-deploy requires local Anchor + Solana toolchain. CI pipeline runs tests against solana-test-validator on every push.
+[ ] Tests passing (anchor test --skip-deploy)
+      → Tests compile correctly. anchor test --skip-deploy requires local Anchor + Solana toolchain. CI pipeline runs against solana-test-validator on every push via .github/workflows/ci.yml.
 [x] Fuzz tests run with real logs — FUZZ_RESULTS.md committed
 [x] GAP 5 — SECURITY.md added: supported versions table, 90-day disclosure policy, known limitations, out-of-scope list
 [x] GAP 6 — sss-token audit-log command wired to GET /audit-log on compliance-service (with --verify and --export flags)

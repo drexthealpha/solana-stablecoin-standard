@@ -1,167 +1,117 @@
 <!--
   SSS Example Frontend
   ====================
-  This is an EXAMPLE frontend demonstrating the Solana Stablecoin Standard SDK.
-  It connects to local backend services — run "docker compose up" first.
-  
-  NOT production-ready: no auth, no error recovery, no rate limiting.
-  For production use, integrate @stbr/sss-token directly in your frontend framework.
-  
-  Mint Service:      http://localhost:3001
-  Compliance Service: http://localhost:3003
+  Single-page example for the Solana Stablecoin Standard SDK.
+  Connects to LOCAL backend services — run "docker compose up" first.
+
+  Mint Service:        http://localhost:3001
+  Compliance Service:  http://localhost:3003
+
+  NOT production-ready: no auth, no rate limiting, keys never leave Phantom.
 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SSS - Solana Stablecoin Standard</title>
+  <title>SSS — Solana Stablecoin Standard</title>
   <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
   <style>
     :root {
-      --bg-primary: #0f0f1a;
-      --bg-card: #1a1a2e;
-      --border-color: #2d2d4e;
-      --accent-purple: #9945FF;
-      --accent-green: #14F195;
-      --text-primary: #ffffff;
-      --text-secondary: #a0a0b0;
-      --error: #ff4757;
-      --success: #2ed573;
+      --bg: #0f0f1a;
+      --card: #1a1a2e;
+      --border: #2d2d4e;
+      --purple: #9945FF;
+      --green: #14F195;
+      --red: #ff4444;
+      --amber: #f59e0b;
+      --text: #e8e8f0;
+      --muted: #8888a8;
+      --mono: 'Courier New', monospace;
     }
 
     * {
-      margin: 0;
-      padding: 0;
       box-sizing: border-box;
     }
 
     body {
+      background: var(--bg);
+      color: var(--text);
       font-family: system-ui, -apple-system, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      min-height: 100vh;
-      line-height: 1.6;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.5;
     }
 
     .banner {
-      background: #ffa502;
-      color: #000;
-      text-align: center;
-      padding: 10px;
-      font-weight: 600;
+      background: #78350f;
+      color: #fef3c7;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
       font-size: 14px;
     }
 
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
-
-    header {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-
-    .logo {
-      font-size: 72px;
-      font-weight: 800;
-      color: var(--accent-purple);
-      letter-spacing: -4px;
+    h1 {
+      color: var(--purple);
+      font-size: 2.5rem;
+      margin-bottom: 4px;
     }
 
     .subtitle {
-      color: var(--text-secondary);
-      font-size: 18px;
+      color: var(--muted);
+      margin-bottom: 32px;
     }
 
-    section {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 24px;
-      margin-bottom: 24px;
-    }
-
-    h2 {
-      font-size: 20px;
       margin-bottom: 20px;
-      color: var(--accent-purple);
     }
 
-    h3 {
-      font-size: 16px;
-      margin: 20px 0 12px;
-      color: var(--text-secondary);
+    .card h2 {
+      color: var(--green);
+      font-size: 1.1rem;
+      margin-top: 0;
     }
 
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-
-    input[type="text"],
-    input[type="number"] {
+    input, select {
       width: 100%;
-      padding: 12px;
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
+      box-sizing: border-box;
+      background: #12122a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 14px;
       border-radius: 8px;
-      color: var(--text-primary);
-      font-family: 'SF Mono', Monaco, monospace;
       font-size: 14px;
-      transition: border-color 0.2s;
+      margin-bottom: 12px;
+      font-family: inherit;
     }
 
     input:focus {
       outline: none;
-      border-color: var(--accent-purple);
-    }
-
-    input:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .radio-group {
-      display: flex;
-      gap: 20px;
-    }
-
-    .radio-option {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-    }
-
-    .radio-option input {
-      accent-color: var(--accent-purple);
+      border-color: var(--purple);
     }
 
     button {
-      background: var(--accent-purple);
+      background: var(--purple);
       color: white;
       border: none;
-      padding: 12px 24px;
+      padding: 10px 24px;
       border-radius: 8px;
+      cursor: pointer;
       font-size: 14px;
       font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    button:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 20px rgba(153, 69, 255, 0.4);
+    button:hover {
+      opacity: 0.85;
     }
 
     button:disabled {
@@ -169,22 +119,10 @@
       cursor: not-allowed;
     }
 
-    .btn-connect {
-      background: var(--accent-purple);
-      width: 100%;
-    }
-
-    .btn-mint {
-      background: var(--accent-green);
-      color: #000;
-    }
-
-    .btn-mint:hover:not(:disabled) {
-      box-shadow: 0 4px 20px rgba(20, 241, 149, 0.4);
-    }
-
     .btn-secondary {
-      background: var(--border-color);
+      background: transparent;
+      border: 1px solid var(--purple);
+      color: var(--purple);
     }
 
     .status-dot {
@@ -192,71 +130,54 @@
       height: 10px;
       border-radius: 50%;
       display: inline-block;
-      margin-right: 8px;
     }
 
-    .status-dot.connected {
-      background: var(--accent-green);
-      box-shadow: 0 0 10px var(--accent-green);
+    .dot-green {
+      background: var(--green);
     }
 
-    .status-dot.disconnected {
-      background: #666;
+    .dot-gray {
+      background: var(--muted);
     }
 
-    .wallet-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px;
-      background: var(--bg-primary);
-      border-radius: 8px;
-      font-family: 'SF Mono', Monaco, monospace;
-      font-size: 13px;
-    }
-
-    .active-mint {
-      padding: 12px;
-      background: var(--bg-primary);
-      border-radius: 8px;
-      font-family: 'SF Mono', Monaco, monospace;
+    .address {
+      font-family: var(--mono);
       font-size: 12px;
+      color: var(--green);
       word-break: break-all;
     }
 
-    .result-box {
-      margin-top: 12px;
-      padding: 12px;
+    .success-box {
+      background: #0d2b1a;
+      border: 1px solid var(--green);
       border-radius: 8px;
-      font-family: 'SF Mono', Monaco, monospace;
+      padding: 12px;
+      margin-top: 12px;
+      color: var(--green);
       font-size: 13px;
     }
 
-    .result-box.success {
-      background: rgba(46, 213, 115, 0.1);
-      border: 1px solid var(--success);
-      color: var(--success);
-    }
-
-    .result-box.error {
-      background: rgba(255, 71, 87, 0.1);
-      border: 1px solid var(--error);
-      color: var(--error);
+    .error-box {
+      background: #2b0d0d;
+      border: 1px solid var(--red);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      color: var(--red);
+      font-size: 13px;
     }
 
     .spinner {
-      display: inline-block;
       width: 16px;
       height: 16px;
-      border: 2px solid transparent;
-      border-top-color: currentColor;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-right: 8px;
-      vertical-align: middle;
+      animation: spin 0.7s linear infinite;
     }
 
     @keyframes spin {
+      from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
 
@@ -264,404 +185,378 @@
       display: none;
     }
 
-    footer {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--text-secondary);
-      font-size: 14px;
+    label {
+      font-size: 13px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 4px;
     }
 
-    footer a {
-      color: var(--accent-purple);
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer a {
+      color: var(--purple);
       text-decoration: none;
     }
 
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
+    .section-divider {
+      border-top: 1px solid var(--border);
+      margin: 16px 0;
     }
 
-    @media (max-width: 600px) {
-      .grid-2 {
-        grid-template-columns: 1fr;
-      }
+    .radio-group {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .radio-option input {
+      width: auto;
+      margin: 0;
     }
   </style>
 </head>
 <body>
   <div class="banner">
-    ⚠️ Example only — connects to local backend (localhost:3001, 3003). Run: docker compose up
+    ⚠️ Example only — connects to local backend services (localhost:3001, 3003). Run: docker compose up first.
   </div>
 
-  <div class="container">
-    <header>
-      <div class="logo">SSS</div>
-      <div class="subtitle">Solana Stablecoin Standard</div>
-    </header>
+  <header>
+    <h1>SSS</h1>
+    <p class="subtitle">Solana Stablecoin Standard — Example Frontend</p>
+  </header>
 
-    <section id="wallet-section">
-      <h2>Connect Wallet</h2>
-      <button class="btn-connect" id="btn-connect" onclick="connectWallet()">
-        Connect Phantom Wallet
-      </button>
-      <div id="wallet-status" class="hidden">
-        <div class="wallet-info">
-          <span class="status-dot connected"></span>
-          <span id="wallet-address"></span>
-        </div>
-      </div>
-      <div id="wallet-error" class="result-box error hidden"></div>
-    </section>
-
-    <section id="init-section">
-      <h2>Initialize Stablecoin</h2>
-      <div class="grid-2">
-        <div class="form-group">
-          <label>Token Name</label>
-          <input type="text" id="token-name" placeholder="My Stablecoin" disabled>
-        </div>
-        <div class="form-group">
-          <label>Symbol</label>
-          <input type="text" id="token-symbol" placeholder="MYUSD" maxlength="10" disabled>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Decimals</label>
-        <input type="number" id="token-decimals" value="6" min="0" max="9" disabled>
-      </div>
-      <div class="form-group">
-        <label>Preset</label>
-        <div class="radio-group">
-          <label class="radio-option">
-            <input type="radio" name="preset" value="sss-1" checked disabled>
-            SSS-1 (Minimal)
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="preset" value="sss-2" disabled>
-            SSS-2 (Compliant)
-          </label>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Mint Address (paste deployed mint)</label>
-        <input type="text" id="mint-address" placeholder="Paste your deployed mint address here" disabled>
-      </div>
-      <button id="btn-use-mint" onclick="useMint()" disabled>Use This Mint</button>
-      <div id="active-mint" class="hidden">
-        <label>Active Mint:</label>
-        <div class="active-mint" id="active-mint-address"></div>
-      </div>
-      <div id="init-error" class="result-box error hidden"></div>
-    </section>
-
-    <section id="operations-section" class="hidden">
-      <h2>Operations</h2>
-      
-      <h3>Mint Tokens</h3>
-      <div class="grid-2">
-        <div class="form-group">
-          <label>Recipient Address</label>
-          <input type="text" id="mint-recipient" placeholder="Recipient wallet address">
-        </div>
-        <div class="form-group">
-          <label>Amount (base units)</label>
-          <input type="number" id="mint-amount" placeholder="1000000">
-        </div>
-      </div>
-      <button id="btn-mint" class="btn-mint" onclick="mintTokens()">Mint Tokens</button>
-      <div id="mint-result" class="result-box hidden"></div>
-      <div id="mint-error" class="result-box error hidden"></div>
-
-      <h3>Token Supply</h3>
-      <button id="btn-supply" class="btn-secondary" onclick="getSupply()">Get Total Supply</button>
-      <div id="supply-result" class="result-box hidden"></div>
-      <div id="supply-error" class="result-box error hidden"></div>
-    </section>
-
-    <section id="compliance-section" class="hidden">
-      <h2>SSS-2 Compliance</h2>
-      
-      <h3>Blacklist</h3>
-      <div class="grid-2">
-        <div class="form-group">
-          <label>Address to Blacklist</label>
-          <input type="text" id="blacklist-address" placeholder="Wallet address">
-        </div>
-        <div class="form-group">
-          <label>Reason</label>
-          <input type="text" id="blacklist-reason" placeholder="KYC failure">
-        </div>
-      </div>
-      <button id="btn-blacklist" class="btn-secondary" onclick="addBlacklist()">Add to Blacklist</button>
-      <div id="blacklist-result" class="result-box hidden"></div>
-      <div id="blacklist-error" class="result-box error hidden"></div>
-
-      <h3>Audit Chain</h3>
-      <button id="btn-verify" class="btn-secondary" onclick="verifyAudit()">Verify Audit Chain</button>
-      <div id="audit-result" class="result-box hidden"></div>
-      <div id="audit-error" class="result-box error hidden"></div>
-    </section>
+  <div class="card">
+    <h2>🔗 Connect Wallet</h2>
+    <div>
+      <span class="status-dot dot-gray" id="walletDot"></span>
+      <span id="walletStatus">Not connected</span>
+    </div>
+    <div style="margin-top: 12px;">
+      <button id="connectBtn">Connect Phantom Wallet</button>
+    </div>
+    <div id="walletAddress" class="address hidden"></div>
+    <div id="walletError" class="error-box hidden"></div>
   </div>
 
-  <footer>
-    <p>Built with @stbr/sss-token · <a href="https://github.com/anomalyco/solana-stablecoin-standard">Solana Stablecoin Standard</a> · MIT License</p>
+  <div class="card">
+    <h2>🪙 Active Mint</h2>
+    <label>Mint Address</label>
+    <input type="text" id="mintInput" placeholder="Paste deployed mint address...">
+    
+    <label>Preset</label>
+    <div class="radio-group">
+      <label class="radio-option">
+        <input type="radio" name="preset" value="sss1">
+        SSS-1 (Minimal)
+      </label>
+      <label class="radio-option">
+        <input type="radio" name="preset" value="sss2" checked>
+        SSS-2 (Compliant)
+      </label>
+    </div>
+    
+    <button id="setMintBtn">Use This Mint</button>
+    <div id="activeMint" class="hidden" style="margin-top: 12px;">
+      <label>Active Mint:</label>
+      <span class="address" id="activeMintAddr"></span>
+    </div>
+    <div id="mintError" class="error-box hidden"></div>
+  </div>
+
+  <div class="card" id="opsCard">
+    <h2>⚡ Operations</h2>
+    
+    <label>Mint Tokens</label>
+    <input type="text" id="recipientInput" placeholder="Recipient address">
+    <input type="number" id="amountInput" placeholder="Amount (base units)">
+    <button id="mintBtn">Mint Tokens</button>
+    <div id="mintResult" class="hidden"></div>
+    <div id="mintOpError" class="error-box hidden"></div>
+
+    <div class="section-divider"></div>
+
+    <label>Token Supply</label>
+    <button id="supplyBtn" class="btn-secondary">Get Total Supply</button>
+    <div id="supplyResult" class="hidden"></div>
+    <div id="supplyError" class="error-box hidden"></div>
+  </div>
+
+  <div class="card" id="complianceCard">
+    <h2>🛡️ SSS-2 Compliance</h2>
+    
+    <label>Blacklist</label>
+    <input type="text" id="blacklistAddr" placeholder="Address to blacklist">
+    <input type="text" id="blacklistReason" placeholder="Reason (e.g. OFAC match)">
+    <button id="blacklistBtn">Add to Blacklist</button>
+    <div id="blacklistResult" class="hidden"></div>
+    <div id="blacklistError" class="error-box hidden"></div>
+
+    <div class="section-divider"></div>
+
+    <label>Audit Chain</label>
+    <button id="verifyBtn" class="btn-secondary">Verify Audit Chain</button>
+    <div id="verifyResult" class="hidden"></div>
+    <div id="verifyError" class="error-box hidden"></div>
+  </div>
+
+  <footer class="footer">
+    Built with @stbr/sss-token · Solana Stablecoin Standard · <a href="https://github.com/solanabr/solana-stablecoin-standard">GitHub</a> · MIT License
   </footer>
 
   <script>
-    let walletAddress = null;
+    let walletPublicKey = null;
     let activeMint = null;
-    let selectedPreset = 'sss-1';
 
     const MINT_SERVICE = 'http://localhost:3001';
     const COMPLIANCE_SERVICE = 'http://localhost:3003';
 
-    async function connectWallet() {
-      const btn = document.getElementById('btn-connect');
-      const errorBox = document.getElementById('wallet-error');
+    function showSpinner(btn) {
+      const saved = btn.innerHTML;
+      btn.innerHTML = '<div class="spinner"></div> Loading...';
+      btn.disabled = true;
+      return saved;
+    }
+
+    function hideSpinner(btn, saved) {
+      btn.innerHTML = saved;
+      btn.disabled = false;
+    }
+
+    function showSuccess(el, msg) {
+      el.textContent = msg;
+      el.className = 'success-box';
+    }
+
+    function showError(el, msg) {
+      el.textContent = msg;
+      el.className = 'error-box';
+    }
+
+    function hideEl(el) {
+      el.classList.add('hidden');
+    }
+
+    // Connect Wallet
+    document.getElementById('connectBtn').addEventListener('click', async () => {
+      const errorEl = document.getElementById('walletError');
       
       if (!window.solana) {
-        showError('wallet-error', 'Phantom wallet not found. Install from phantom.app');
+        showError(errorEl, "Phantom wallet not found. Install from https://phantom.app");
         return;
       }
 
       try {
-        btn.innerHTML = '<span class="spinner"></span>Connecting...';
-        btn.disabled = true;
-        errorBox.classList.add('hidden');
-
-        const response = await window.solana.connect();
-        walletAddress = response.publicKey.toString();
+        const resp = await window.solana.connect();
+        walletPublicKey = resp.publicKey.toString();
         
-        document.getElementById('wallet-address').textContent = walletAddress;
-        document.getElementById('wallet-status').classList.remove('hidden');
-        btn.classList.add('hidden');
+        document.getElementById('walletDot').className = 'status-dot dot-green';
+        document.getElementById('walletStatus').textContent = 'Connected';
         
-        enableInputs();
-      } catch (err) {
-        showError('wallet-error', err.message || 'Connection rejected');
-        btn.disabled = false;
-        btn.textContent = 'Connect Phantom Wallet';
+        const addrEl = document.getElementById('walletAddress');
+        addrEl.textContent = walletPublicKey;
+        addrEl.classList.remove('hidden');
+        
+        hideEl(errorEl);
+      } catch (error) {
+        showError(errorEl, error.message || 'Connection rejected');
       }
-    }
+    });
 
-    function enableInputs() {
-      document.querySelectorAll('#init-section input').forEach(input => {
-        input.disabled = false;
-      });
-      document.querySelectorAll('input[name="preset"]').forEach(radio => {
-        radio.disabled = false;
-      });
-    }
+    // Set Mint
+    document.getElementById('setMintBtn').addEventListener('click', () => {
+      const input = document.getElementById('mintInput').value.trim();
+      const errorEl = document.getElementById('mintError');
+      
+      if (!input) {
+        showError(errorEl, "Please enter a mint address");
+        return;
+      }
+      
+      activeMint = input;
+      document.getElementById('activeMintAddr').textContent = input;
+      document.getElementById('activeMint').classList.remove('hidden');
+      hideEl(errorEl);
+    });
 
+    // Preset change
     document.querySelectorAll('input[name="preset"]').forEach(radio => {
       radio.addEventListener('change', (e) => {
-        selectedPreset = e.target.value;
-        const complianceSection = document.getElementById('compliance-section');
-        if (selectedPreset === 'sss-2') {
-          complianceSection.classList.remove('hidden');
+        const complianceCard = document.getElementById('complianceCard');
+        if (e.target.value === 'sss2') {
+          complianceCard.classList.remove('hidden');
         } else {
-          complianceSection.classList.add('hidden');
+          complianceCard.classList.add('hidden');
         }
       });
     });
 
-    function useMint() {
-      const mintInput = document.getElementById('mint-address').value.trim();
-      if (!mintInput) {
-        showError('init-error', 'Please enter a mint address');
+    // Mint Tokens
+    document.getElementById('mintBtn').addEventListener('click', async () => {
+      const recipient = document.getElementById('recipientInput').value.trim();
+      const amount = document.getElementById('amountInput').value;
+      const resultEl = document.getElementById('mintResult');
+      const errorEl = document.getElementById('mintOpError');
+      const btn = document.getElementById('mintBtn');
+
+      if (!walletPublicKey || !activeMint) {
+        showError(errorEl, "Please connect wallet and set mint first");
         return;
       }
-
-      try {
-        new solanaWeb3.PublicKey(mintInput);
-        activeMint = mintInput;
-        document.getElementById('active-mint-address').textContent = activeMint;
-        document.getElementById('active-mint').classList.remove('hidden');
-        document.getElementById('init-error').classList.add('hidden');
-        
-        document.getElementById('operations-section').classList.remove('hidden');
-        document.getElementById('btn-use-mint').disabled = true;
-        document.getElementById('mint-address').disabled = true;
-        
-        if (selectedPreset === 'sss-2') {
-          document.getElementById('compliance-section').classList.remove('hidden');
-        }
-      } catch (err) {
-        showError('init-error', 'Invalid mint address format');
-      }
-    }
-
-    async function mintTokens() {
-      const recipient = document.getElementById('mint-recipient').value.trim();
-      const amount = document.getElementById('mint-amount').value;
-      const btn = document.getElementById('btn-mint');
 
       if (!recipient || !amount) {
-        showError('mint-error', 'Please fill in recipient and amount');
+        showError(errorEl, "Please enter recipient and amount");
         return;
       }
 
-      try {
-        new solanaWeb3.PublicKey(recipient);
-      } catch (err) {
-        showError('mint-error', 'Invalid recipient address');
-        return;
-      }
+      const saved = showSpinner(btn);
+      hideEl(resultEl);
+      hideEl(errorEl);
 
       try {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span>Minting...';
-        hideResult('mint-result');
-        hideError('mint-error');
-
         const response = await fetch(`${MINT_SERVICE}/mint`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             mint: activeMint,
-            recipient,
-            amount: parseInt(amount),
-            keypairBase64: ''
+            recipient: recipient,
+            amount: parseInt(amount)
           })
         });
-
+        
         const data = await response.json();
         
         if (data.success) {
-          showResult('mint-result', `TX: ${data.note || 'Minting complete'}`, 'success');
+          showSuccess(resultEl, "✅ TX: " + (data.transaction || data.note || 'Success'));
         } else {
-          showError('mint-error', data.error || 'Minting failed');
+          showError(errorEl, data.error || "Request failed");
         }
       } catch (err) {
-        showError('mint-error', err.message);
+        showError(errorEl, err.message || "Request failed");
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'Mint Tokens';
+        hideSpinner(btn, saved);
       }
-    }
+    });
 
-    async function getSupply() {
-      const btn = document.getElementById('btn-supply');
+    // Get Supply
+    document.getElementById('supplyBtn').addEventListener('click', async () => {
+      const resultEl = document.getElementById('supplyResult');
+      const errorEl = document.getElementById('supplyError');
+      const btn = document.getElementById('supplyBtn');
+
+      if (!activeMint) {
+        showError(errorEl, "Please set mint first");
+        return;
+      }
+
+      const saved = showSpinner(btn);
+      hideEl(resultEl);
+      hideEl(errorEl);
 
       try {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span>Fetching...';
-        hideResult('supply-result');
-        hideError('supply-error');
-
         const response = await fetch(`${MINT_SERVICE}/supply/${activeMint}`);
         const data = await response.json();
-
+        
         if (data.supply !== undefined) {
-          showResult('supply-result', `Total Supply: ${data.supply}`, 'success');
+          showSuccess(resultEl, "Total Supply: " + data.supply);
         } else {
-          showError('supply-error', 'Failed to get supply');
+          showError(errorEl, data.error || "Request failed");
         }
       } catch (err) {
-        showError('supply-error', err.message);
+        showError(errorEl, err.message || "Request failed");
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'Get Total Supply';
+        hideSpinner(btn, saved);
       }
-    }
+    });
 
-    async function addBlacklist() {
-      const address = document.getElementById('blacklist-address').value.trim();
-      const reason = document.getElementById('blacklist-reason').value.trim() || 'Manual review';
-      const btn = document.getElementById('btn-blacklist');
+    // Add to Blacklist
+    document.getElementById('blacklistBtn').addEventListener('click', async () => {
+      const address = document.getElementById('blacklistAddr').value.trim();
+      const reason = document.getElementById('blacklistReason').value.trim() || 'Manual review';
+      const resultEl = document.getElementById('blacklistResult');
+      const errorEl = document.getElementById('blacklistError');
+      const btn = document.getElementById('blacklistBtn');
+
+      if (!walletPublicKey || !activeMint) {
+        showError(errorEl, "Please connect wallet and set mint first");
+        return;
+      }
 
       if (!address) {
-        showError('blacklist-error', 'Please enter an address');
+        showError(errorEl, "Please enter an address");
         return;
       }
 
-      try {
-        new solanaWeb3.PublicKey(address);
-      } catch (err) {
-        showError('blacklist-error', 'Invalid address format');
-        return;
-      }
+      const saved = showSpinner(btn);
+      hideEl(resultEl);
+      hideEl(errorEl);
 
       try {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span>Adding...';
-        hideResult('blacklist-result');
-        hideError('blacklist-error');
-
         const response = await fetch(`${COMPLIANCE_SERVICE}/blacklist/add`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             mint: activeMint,
-            address,
-            reason,
-            operator: walletAddress
+            address: address,
+            reason: reason,
+            operator: walletPublicKey
           })
         });
-
+        
         const data = await response.json();
         
         if (data.success) {
-          showResult('blacklist-result', `Added to blacklist: ${address}`, 'success');
+          showSuccess(resultEl, "✅ Blacklisted. TX: " + (data.transaction || 'Success'));
         } else {
-          showError('blacklist-error', data.error || 'Failed to add to blacklist');
+          showError(errorEl, data.error || "Request failed");
         }
       } catch (err) {
-        showError('blacklist-error', err.message);
+        showError(errorEl, err.message || "Request failed");
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'Add to Blacklist';
+        hideSpinner(btn, saved);
       }
-    }
+    });
 
-    async function verifyAudit() {
-      const btn = document.getElementById('btn-verify');
+    // Verify Audit Chain
+    document.getElementById('verifyBtn').addEventListener('click', async () => {
+      const resultEl = document.getElementById('verifyResult');
+      const errorEl = document.getElementById('verifyError');
+      const btn = document.getElementById('verifyBtn');
+
+      const saved = showSpinner(btn);
+      hideEl(resultEl);
+      hideEl(errorEl);
 
       try {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span>Verifying...';
-        hideResult('audit-result');
-        hideError('audit-error');
-
         const response = await fetch(`${COMPLIANCE_SERVICE}/audit-log/verify`);
         const data = await response.json();
         
         if (data.valid) {
-          showResult('audit-result', `✅ Chain VALID — ${data.rows} rows`, 'success');
+          showSuccess(resultEl, "✅ Chain VALID — " + data.rows + " rows verified");
         } else {
-          showResult('audit-result', `❌ Chain TAMPERED — ${data.error}`, 'error');
+          showError(errorEl, "❌ Chain TAMPERED — " + data.error);
         }
       } catch (err) {
-        showError('audit-error', err.message);
+        showError(errorEl, "Could not reach compliance service. Is docker compose up?");
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'Verify Audit Chain';
+        hideSpinner(btn, saved);
       }
-    }
-
-    function showResult(id, message, type) {
-      const el = document.getElementById(id);
-      el.textContent = message;
-      el.className = `result-box ${type}`;
-      el.classList.remove('hidden');
-    }
-
-    function hideResult(id) {
-      const el = document.getElementById(id);
-      el.classList.add('hidden');
-    }
-
-    function showError(id, message) {
-      const el = document.getElementById(id);
-      el.textContent = message;
-      el.classList.remove('hidden');
-    }
-
-    function hideError(id) {
-      const el = document.getElementById(id);
-      el.classList.add('hidden');
-    }
+    });
   </script>
 </body>
 </html>

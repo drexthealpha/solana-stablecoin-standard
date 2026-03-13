@@ -4,26 +4,26 @@ Switchboard oracle integration for non-USD pegged SSS stablecoins. Enables EUR, 
 
 ## Architecture
 
-The oracle module is a **separate program** — the SSS token itself remains pure SSS-1 or SSS-2. The oracle feeds into the mint/redeem pricing logic only, not into token extensions or transfer logic.
+The oracle module is a **separate program** from the SSS token. The token itself remains pure SSS-1 or SSS-2. The oracle feeds into the mint/redeem pricing logic only — not into token extensions or transfer hook logic.
 ┌─────────────────────┐   price feed    ┌──────────────────────────┐
 │   Switchboard       │───────────────▶ │   Oracle Module          │
-│   On-Demand Feed   │                 │   (separate program)     │
+│   On-Demand Feed    │                 │   (separate program)     │
 └─────────────────────┘                 └────────────┬─────────────┘
 │ CPI: get_mint_price
 ▼
 ┌─────────────────────┐
-│   SSS-1 / SSS-2    │
+│   SSS-1 / SSS-2     │
 │   Stablecoin Mint   │
 └─────────────────────┘
 
-**Why separate?** The SSS token is an open standard. Pricing logic is jurisdiction-specific and changes frequently. Decoupling means the token standard stays stable while issuers swap oracle implementations.
+**Why a separate program?** The SSS token standard is jurisdiction-agnostic. Pricing logic is jurisdiction-specific and changes frequently. Decoupling means the token standard stays stable while issuers swap oracle implementations independently.
 
 ## Supported Peg Types
 
 | Peg | Switchboard Feed | Decimals | Use Case |
 |-----|-----------------|----------|----------|
 | EUR/USD | `EURUSDFeed` | 6 | European stablecoins |
-| BRL/USD | `BRLUSDFeed` | 6 | Brazilian Real tokens (Superteam BR) |
+| BRL/USD | `BRLUSDFeed` | 6 | Brazilian Real tokens |
 | CPI-indexed | US CPI Monthly Feed | 2 | Inflation-adjusted store of value |
 | Custom | Any Switchboard pull feed | configurable | Any fiat or commodity peg |
 
@@ -50,29 +50,22 @@ OracleConfig PDA: ["oracle-config", stablecoin_mint.key()]
 
 #### `initialize_oracle`
 
-Registers a Switchboard pull feed with an existing SSS mint.
-```rust
-// Requires: master_authority signature
-// Validates: feed_account is a valid Switchboard pull feed
-// Creates: OracleConfig PDA
-pub fn initialize_oracle(ctx: Context<InitializeOracle>, args: OracleArgs) -> Result<()>
-```
+Registers a Switchboard pull feed with an existing SSS mint. Requires `master_authority` signature. Validates that `feed_account` is a valid Switchboard pull feed before storing.
 
 #### `get_mint_price`
 
-Returns the current USD-denominated price for 1 unit of the pegged currency. Pulls from Switchboard on-demand.
+Returns the current USD-denominated price for 1 unit of the pegged currency. Pulls live data from Switchboard on-demand. Reverts if price is older than `staleness_threshold`.
 ```rust
 // Returns: price as u64 scaled by 10^price_decimals
-// Reverts if: price is older than staleness_threshold
+// Example: EUR/USD = 0.92 → returns 920000 (6 decimals)
 pub fn get_mint_price(ctx: Context<GetMintPrice>) -> Result<u64>
 ```
 
 #### `assert_price_fresh`
 
-CPI-callable guard that reverts if the cached price is stale. Mint/redeem services call this as a preflight check before executing any mint or burn.
+CPI-callable guard that reverts if the cached price is stale. Mint-service calls this as a preflight before every mint or redeem operation.
 ```rust
-// Called via CPI from mint-service before sdk.mint()
-// Reverts with StalePriceFeed if slot_diff > staleness_threshold
+// Reverts with StalePriceFeed if age > staleness_threshold
 pub fn assert_price_fresh(ctx: Context<AssertPriceFresh>) -> Result<()>
 ```
 
@@ -87,14 +80,14 @@ const oraclePrice = await oracleProgram.methods
     oracleConfig: oracleConfigPDA,
     feedAccount: switchboardFeedAccount,
   })
-  .view(); // read-only, no transaction
+  .view(); // read-only, no transaction needed
 
-// 2. Calculate how many EUR-stable tokens to mint for a given USD amount
-//    Example: user deposits $1000 USD, EUR rate = 0.92, price = 920000 (6 decimals)
+// 2. User deposits $1000 USD — calculate how many EUR-stable to mint
+//    oraclePrice = 920000 (EUR/USD = 0.92, 6 decimals)
 const usdAmount = 1000;
-const eurAmount = Math.floor((usdAmount / Number(oraclePrice)) * 10 ** decimals);
+const eurAmount = Math.floor((usdAmount * 10 ** decimals) / Number(oraclePrice));
 
-// 3. Mint via SSS SDK — token itself is standard SSS-2, no oracle awareness needed
+// 3. Mint via SSS SDK — the token itself is standard SSS-2, oracle-unaware
 await stable.mint({ recipient, amount: BigInt(eurAmount) });
 ```
 
@@ -102,26 +95,25 @@ await stable.mint({ recipient, amount: BigInt(eurAmount) });
 
 | Error | Description |
 |-------|-------------|
-| `StalePriceFeed` | Feed price older than `staleness_threshold` |
-| `InvalidFeedAccount` | `feed_account` is not a valid Switchboard feed |
-| `OracleAuthorityMismatch` | Caller is not `master_authority` of the SSS mint |
-| `PriceOverflow` | Computed mint amount exceeds u64 |
+| `StalePriceFeed` | Feed price is older than `staleness_threshold` seconds |
+| `InvalidFeedAccount` | `feed_account` is not a valid Switchboard pull feed |
+| `OracleAuthorityMismatch` | Caller is not `master_authority` of the linked SSS mint |
+| `PriceOverflow` | Computed mint amount would exceed u64 max |
 
 ## Reference
 
 - [Switchboard On-Demand Examples](https://github.com/switchboard-xyz/sb-on-demand-examples)
 - [Switchboard Documentation](https://docs.switchboard.xyz)
 - [Switchboard On-Demand SDK](https://www.npmjs.com/package/@switchboard-xyz/on-demand)
-- [Confidential Balances Product Guide](https://github.com/solana-developers/Confidential-Balances-Sample/blob/main/docs/product_guide.md)
 
 ## Status
 
-**Spec complete. Not yet implemented.**
+**Spec complete. Implementation pending.**
 
-Implementation requires:
+To implement:
 1. Deploy a Switchboard pull feed subscription for the target currency pair
 2. Write the `oracle-module` Anchor program (~200 lines Rust)
 3. Wire `assert_price_fresh` CPI into `mint-service` before every mint
-4. Add `oracle-config` to `docker-compose.yml` environment for the mint service
+4. Add oracle config pubkeys to `docker-compose.yml` environment
 
 Estimated additional work: 2 days.
