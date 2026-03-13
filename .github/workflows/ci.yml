@@ -32,6 +32,15 @@ jobs:
       - run: cd backend/compliance-service && npm ci && npm run build
 
   # anchor:
+  #   NOTE: Anchor build + test requires local Rust/Solana toolchain (anchor 0.30.1, solana 1.18.0).
+  #   Both programs are already deployed on devnet — see DEVNET_PROOF.md for Program IDs and TX hashes.
+  #   To run locally:
+  #     anchor build
+  #     anchor test --skip-deploy
+  #   CI runs SDK + CLI + backend TypeScript checks on every push.
+  #   Uncomment below when setup-anchor@v2 supports anchor 0.30.1 on ubuntu-latest:
+  #
+  # anchor:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v4
@@ -41,4 +50,3 @@ jobs:
   #         solana-version: 1.18.0
   #     - run: anchor build
   #     - run: anchor test --skip-deploy
-  #   # Requires local Anchor toolchain — run manually after anchor init
