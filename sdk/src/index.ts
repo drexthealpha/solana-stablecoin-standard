@@ -109,6 +109,7 @@ export class SolanaStablecoin {
   private connection: Connection;
   private wallet: anchor.Wallet;
   private program: anchor.Program;
+  private hookProgram: anchor.Program | null = null;
   public _mint: PublicKey | null = null;
   public compliance: ComplianceModule | null = null;
 
@@ -129,6 +130,13 @@ export class SolanaStablecoin {
       require("../idl/stablecoin.json"),
       provider
     ) as anchor.Program;
+
+    try {
+      const hookIdl = require('../idl/transfer-hook.json');
+      this.hookProgram = new anchor.Program(hookIdl, provider) as anchor.Program;
+    } catch {
+      this.hookProgram = null;
+    }
   }
 
   static getConfigPDA(mint: PublicKey): PublicKey {
@@ -278,19 +286,20 @@ export class SolanaStablecoin {
       const extraAccountMetaListPDA =
         SolanaStablecoin.getExtraAccountMetaListPDA(mint);
 
-      const initHookIx = await this.program.methods
-        .initializeExtraAccountMetaList()
-        .accounts({
-          config: configPDA,
-          payer: this.wallet.publicKey,
-          signer: this.wallet.publicKey,
-          extraAccountMetaList: extraAccountMetaListPDA,
-          mint: mint,
-          systemProgram: SystemProgram.programId,
-        })
-        .instruction();
-
-      tx.add(initHookIx);
+      if (this.hookProgram) {
+        // MUST call TRANSFER HOOK program — it owns the ExtraAccountMetaList PDA
+        // Calling the stablecoin program here would fail PDA ownership check
+        const initHookIx = await this.hookProgram.methods
+          .initializeExtraAccountMetaList()
+          .accounts({
+            payer: this.wallet.publicKey,
+            extraAccountMetaList: extraAccountMetaListPDA,
+            mint: mint,
+            systemProgram: SystemProgram.programId,
+          })
+          .instruction();
+        tx.add(initHookIx);
+      }
     }
 
     tx.feePayer = this.wallet.publicKey;
