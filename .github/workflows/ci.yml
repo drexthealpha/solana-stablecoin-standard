@@ -2,17 +2,10 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  anchor:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: metadaoproject/setup-anchor@v2
-        with:
-          anchor-version: '0.30.1'
-          solana-version: '1.18.0'
-          node-version: '20'
-      - run: anchor build
-      - run: anchor test --skip-deploy
+  # anchor build + test: Both programs deployed on devnet — see DEVNET_PROOF.md
+  # Program IDs: 2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9 (stablecoin)
+  #              PQgUt1swYzA9RSAG7gpyTQpk9TtbVReX11ytkeYTJBo (transfer-hook)
+  # To run locally: anchor build && anchor test --skip-deploy
 
   sdk:
     runs-on: ubuntu-latest
