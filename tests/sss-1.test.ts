@@ -38,7 +38,7 @@ describe("SSS-1: Minimal Stablecoin", () => {
 
   it("initialize → verify config has enablePermanentDelegate=false", async () => {
     // TODO: Get SSS-1 preset configuration
-    const preset = Presets.SSS1;
+    const preset = Presets.SSS_1;
     
     // TODO: Initialize the stablecoin with SSS-1 preset
     const decimals = 6;

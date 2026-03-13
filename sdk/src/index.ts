@@ -646,3 +646,4 @@ export class SolanaStablecoin {
 }
 
 export default SolanaStablecoin;
+export { ComplianceModule };

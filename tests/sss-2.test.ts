@@ -40,7 +40,7 @@ describe("SSS-2: Compliant Stablecoin", () => {
 
   it("initialize → verify config has enablePermanentDelegate=true", async () => {
     // TODO: Get SSS-2 preset configuration
-    const preset = Presets.SSS2;
+    const preset = Presets.SSS_2;
     
     // TODO: Initialize the stablecoin with SSS-2 preset (compliance enabled)
     const decimals = 6;
