@@ -11,6 +11,7 @@ export interface StablecoinConfigAccount {
   blacklister: PublicKey;
   pauser: PublicKey;
   isPaused: boolean;
+  totalSupply: number;
   enablePermanentDelegate: boolean;
   enableTransferHook: boolean;
   defaultAccountFrozen: boolean;

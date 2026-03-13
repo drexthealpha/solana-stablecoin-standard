@@ -115,3 +115,4 @@ export function getPreset(presetName: string): PresetConfig {
 }
 
 export { Presets, Preset, PresetConfig, InitializeArgs };
+export { parseTOMLFile as parseConfig };
