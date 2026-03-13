@@ -8,7 +8,8 @@
   "scripts": {
     "build": "npx tsc --declaration --outDir dist",
     "prepublishOnly": "npm run build",
-    "test": "echo 'No unit tests yet' && exit 0"
+    "test": "echo 'No unit tests yet' && exit 0",
+    "prove-devnet": "ts-node ../scripts/prove-hook-devnet.ts"
   },
   "publishConfig": {
     "access": "public"
