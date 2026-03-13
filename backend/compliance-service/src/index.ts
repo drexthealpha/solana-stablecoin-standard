@@ -40,6 +40,15 @@ app.get("/audit-log/export", (req: Request, res: Response) => {
   res.send(exportCsv(db));
 });
 
+app.get("/audit-log", (req: Request, res: Response) => {
+  const limit = Math.min(parseInt((req.query.limit as string) || "50"), 200);
+  const offset = parseInt((req.query.offset as string) || "0");
+  const rows = db.prepare(
+    "SELECT id, timestamp, action, actor, target, reason, amount, tx_sig FROM audit ORDER BY id ASC LIMIT ? OFFSET ?"
+  ).all(limit, offset) as any[];
+  res.json({ entries: rows, limit, offset });
+});
+
 app.post("/audit-log", (req: Request, res: Response) => {
   const { action, actor, target, reason, amount, tx_sig } = req.body;
 
