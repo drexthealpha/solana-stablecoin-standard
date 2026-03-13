@@ -29,13 +29,23 @@ app.get("/transactions/:mint", async (req, res) => {
   }
 });
 
-app.get("/supply/:mint", (req, res) => {
+app.get("/supply/:mint", async (req, res) => {
   const { mint } = req.params;
-  res.json({
-    mint,
-    supply: "0",
-    note: "Query on-chain for live supply",
-  });
+  const rpcUrl = process.env.RPC_URL || "https://api.devnet.solana.com";
+  try {
+    const { Connection, PublicKey } = require("@solana/web3.js");
+    const connection = new Connection(rpcUrl, "confirmed");
+    const mintPubkey = new PublicKey(mint);
+    const supplyInfo = await connection.getTokenSupply(mintPubkey);
+    res.json({
+      mint,
+      supply: supplyInfo.value.amount,
+      uiAmount: supplyInfo.value.uiAmount,
+      decimals: supplyInfo.value.decimals,
+    });
+  } catch (e: any) {
+    res.status(500).json({ mint, supply: "0", error: e.message });
+  }
 });
 
 app.listen(PORT, () => {

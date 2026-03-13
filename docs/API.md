@@ -45,7 +45,7 @@ curl -X POST http://localhost:3001/burn \
 
 Response:
 ```json
-{ "success": true, "note": "Use sss-token CLI for full burn" }
+{ "success": true, "transaction": "5j6YCH...abc" }
 ```
 
 ---
@@ -73,8 +73,14 @@ Response:
 ```json
 {
   "mint": "7xKXtg...",
-  "transactions": [],
-  "note": "Connect to Helius webhook for production indexing"
+  "transactions": [
+    {
+      "signature": "5j6YCH...abc",
+      "slot": 123456789,
+      "blockTime": 1704067200,
+      "err": null
+    }
+  ]
 }
 ```
 
@@ -86,11 +92,7 @@ curl http://localhost:3002/supply/7xKXtg...
 
 Response:
 ```json
-{
-  "mint": "7xKXtg...",
-  "supply": "0",
-  "note": "Query on-chain for live supply"
-}
+{ "mint": "7xKXtg...", "supply": "1000000000", "uiAmount": 1000.0, "decimals": 6 }
 ```
 
 ---
