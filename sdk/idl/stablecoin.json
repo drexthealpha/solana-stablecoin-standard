@@ -1115,6 +1115,10 @@
             "type": "bool"
           },
           {
+            "name": "totalSupply",
+            "type": "u64"
+          },
+          {
             "name": "enablePermanentDelegate",
             "type": "bool"
           },
