@@ -11,7 +11,7 @@ export const OutroScene: React.FC = () => {
       <div style={{ color: '#FFFFFF', fontSize: 96, fontWeight: 900, opacity: fade, transform: `scale(${titleScale})`, textAlign: 'center' }}>Fork it. Ship it.</div>
       <div style={{ opacity: ctaOpacity, marginTop: 48, textAlign: 'center' }}>
         <div style={{ color: '#C4B5FD', fontSize: 34 }}>github.com/solanabr/solana-stablecoin-standard</div>
-        <div style={{ color: '#86EFAC', fontSize: 28, marginTop: 16 }}>npmjs.com/package/@stbr/sss-token</div>
+        <div style={{ color: '#86EFAC', fontSize: 28, marginTop: 16 }}>npmjs.com/package/@drexthealpha/sss-token</div>
         <div style={{ color: '#FCD34D', fontSize: 28, marginTop: 16 }}>@SuperteamBR @kauenet</div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 [![CI](https://github.com/drexthealpha/solana-stablecoin-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/drexthealpha/solana-stablecoin-standard/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/@stbr/sss-token)](https://npmjs.com/package/@stbr/sss-token)
+[![npm](https://img.shields.io/npm/v/@drexthealpha/sss-token)](https://npmjs.com/package/@drexthealpha/sss-token)
 
 # Solana Stablecoin Standard (SSS)
 
@@ -9,7 +9,7 @@ OpenZeppelin for Solana stablecoins. SSS-1 (minimal) + SSS-2 (GENIUS Act complia
 
 ```bash
 # Install SDK
-npm install @stbr/sss-token
+npm install @drexthealpha/sss-token
 
 # Create SSS-1 stablecoin
 const mint = await sdk.create(6, {

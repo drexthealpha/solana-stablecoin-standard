@@ -62,7 +62,7 @@ backend/compliance-service — port 3003
 [x] All 9 docs written
 [x] GAP 2 — SQLite checksum chain audit log (better-sqlite3, SHA-256 prev_hash chain, /audit-log/verify, /audit-log/export)
 [x] GAP 3 — Dockerfiles for all 4 backend services + TS/import fixes so docker compose up works
-[x] GAP 4 — npm publish @stbr/sss-token@0.1.0-beta (sdk/package.json ready — run: cd sdk && npm publish)
+[x] GAP 4 — npm publish @drexthealpha/sss-token@0.1.0-beta (sdk/package.json ready — run: cd sdk && npm publish)
 [ ] Tests passing (anchor test --skip-deploy)
       → Tests compile correctly. anchor test --skip-deploy requires local Anchor + Solana toolchain. CI pipeline runs against solana-test-validator on every push via .github/workflows/ci.yml.
 [x] Fuzz tests run with real logs — FUZZ_RESULTS.md committed
@@ -91,4 +91,4 @@ All other 15 transaction hashes in DEVNET_PROOF.md are confirmed real transactio
 Run this once to make the SDK installable via npm:
   cd sdk && npm publish --access public --tag beta
 
-This is configured and ready — sdk/package.json has name @stbr/sss-token, version 0.1.0-beta, publishConfig.access = public.
+This is configured and ready — sdk/package.json has name @drexthealpha/sss-token, version 0.1.0-beta, publishConfig.access = public.

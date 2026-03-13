@@ -1,5 +1,5 @@
 {
-  "name": "@stbr/sss-token",
+  "name": "@drexthealpha/sss-token",
   "version": "0.1.0-beta",
   "description": "Solana Stablecoin Standard SDK — SSS-1 and SSS-2 presets",
   "main": "dist/index.js",

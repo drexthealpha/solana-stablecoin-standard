@@ -1,10 +1,10 @@
 # SDK Reference
 
-`@stbr/sss-token` is the TypeScript SDK for the Solana Stablecoin Standard. It wraps the on-chain Anchor program and provides a clean, typed API for deploying and operating SSS-1 and SSS-2 stablecoins.
+`@drexthealpha/sss-token` is the TypeScript SDK for the Solana Stablecoin Standard. It wraps the on-chain Anchor program and provides a clean, typed API for deploying and operating SSS-1 and SSS-2 stablecoins.
 
 ## Installation
 ```bash
-npm install @stbr/sss-token
+npm install @drexthealpha/sss-token
 ```
 
 Peer dependencies:
@@ -14,7 +14,7 @@ npm install @solana/web3.js @coral-xyz/anchor
 
 ## Quick Start
 ```typescript
-import { SolanaStablecoin, Presets } from "@stbr/sss-token";
+import { SolanaStablecoin, Presets } from "@drexthealpha/sss-token";
 import { Connection, Keypair } from "@solana/web3.js";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -238,5 +238,5 @@ import {
   STABLECOIN_PROGRAM_ID,  // 2N19eMKD2xGpjNzfktVCPnkrbGJZAzuDFoH7SJtQiNm9
   TRANSFER_HOOK_PROGRAM_ID, // PQgUt1swYzA9RSAG7gpyTQpk9TtbVReX11ytkeYTJBo
   TOKEN_PROGRAM_ID,         // TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
-} from "@stbr/sss-token";
+} from "@drexthealpha/sss-token";
 ```

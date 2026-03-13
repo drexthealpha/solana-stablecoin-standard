@@ -1,5 +1,5 @@
 [![CI](https://github.com/drexthealpha/solana-stablecoin-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/drexthealpha/solana-stablecoin-standard/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/@stbr/sss-token)](https://npmjs.com/package/@stbr/sss-token)
+[![npm](https://img.shields.io/npm/v/@drexthealpha/sss-token)](https://npmjs.com/package/@drexthealpha/sss-token)
 
 # Solana Stablecoin Standard
 
@@ -9,7 +9,7 @@ A comprehensive framework for building regulated stablecoins on Solana using Tok
 
 ```bash
 # Install SDK
-npm install @stbr/sss-token
+npm install @drexthealpha/sss-token
 
 # Initialize SSS-1 (minimal)
 sss-token init --preset sss-1 --name "My Stablecoin" --symbol "MSTB" --decimals 6
@@ -30,12 +30,12 @@ sss-token blacklist add --mint <MINT_ADDRESS> --address <ACCOUNT> --reason "KYC 
 ## Install SDK
 
 ```bash
-npm install @stbr/sss-token
+npm install @drexthealpha/sss-token
 ```
 
 ## TypeScript SDK
 ```typescript
-import { SolanaStablecoin, Presets } from "@stbr/sss-token";
+import { SolanaStablecoin, Presets } from "@drexthealpha/sss-token";
 import { Connection, Keypair } from "@solana/web3.js";
 
 const connection = new Connection("https://api.devnet.solana.com");
@@ -63,7 +63,7 @@ const supply = await stable.getTotalSupply();
 console.log("Total supply:", supply);
 ```
 
-> Install: `npm install @stbr/sss-token`
+> Install: `npm install @drexthealpha/sss-token`
 > See [docs/SDK.md](docs/SDK.md) for full API reference.
 
 ## Preset Comparison
