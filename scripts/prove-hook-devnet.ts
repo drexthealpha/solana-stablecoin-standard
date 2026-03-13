@@ -32,7 +32,7 @@ async function main() {
 
   const hookIdl = require("../sdk/idl/transfer-hook.json");
   const hookProgram = new anchor.Program(hookIdl, TRANSFER_HOOK_PROGRAM_ID, provider);
-  const stablecoinIdl = require("./sdk/idl/stablecoin.json");
+  const stablecoinIdl = require("../sdk/idl/stablecoin.json");
   const stablecoinProgram = new anchor.Program(stablecoinIdl, STABLECOIN_PROGRAM_ID, provider);
 
   const [extraAccountMetaList] = PublicKey.findProgramAddressSync(
