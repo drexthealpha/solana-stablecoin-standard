@@ -51,10 +51,10 @@ Response:
 
 ```http
 POST /burn
-Content
+Content-Type: application/json
 
 {
-  "-Type: application/jsonamount": 500000,
+  "amount": 500000,
   "reference": "burn-001"
 }
 ```
