@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
-import { SolanaStablecoin } from "../../../sdk/src/index";
+import { SolanaStablecoin } from "@drexthealpha/sss-token";
 import * as anchor from "@coral-xyz/anchor";
 
 const app = express();
