@@ -1,0 +1,20 @@
+{
+  "name": "@drexthealpha/sss-tui",
+  "version": "0.1.0",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "npx tsc --outDir dist"
+  },
+  "dependencies": {
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.8.29",
+    "dotenv": "^16.0.0",
+    "@solana/web3.js": "^1.87.6"
+  },
+  "devDependencies": {
+    "@types/blessed": "^0.1.21",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
+  }
+}
